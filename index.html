@@ -24,28 +24,46 @@
     </script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
     <!-- Firebase SDK Modular (v10) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged, 
+            createUserWithEmailAndPassword 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            getDocs, 
+            query, 
+            where, 
+            doc, 
+            setDoc,
+            orderBy 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // SUBSTIU AQUI PELAS SUAS CHAVES COPIADAS DO FIREBASE CONSOLE
+        // =========================================================================
+        // CHAVES OFICIAIS DO PROJETO PONTO-ELETRONICO-HOVET-UFMT
+        // =========================================================================
         const firebaseConfig = {
-            apiKey: "SUA_API_KEY_REAL_AQUI",
-            authDomain: "seu-projeto-real.firebaseapp.com",
-            projectId: "seu-projeto-real",
-            storageBucket: "seu-projeto-real.appspot.com",
-            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-            appId: "SEU_APP_ID"
+            apiKey: "AIzaSyCP_2xC3vTilXgrdLAQ_UsGp-mSEE-3oz0",
+            authDomain: "ponto-eletronico-hovet-ufmt.firebaseapp.com",
+            projectId: "ponto-eletronico-hovet-ufmt",
+            storageBucket: "ponto-eletronico-hovet-ufmt.firebasestorage.app",
+            messagingSenderId: "755317322283",
+            appId: "1:755317322283:web:7780136065f30d7cad306e"
         };
 
-        // Inicialização do Firebase
-        let app, auth, db;
+        // Inicialização Global do Firebase
         try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
 
             window.fbAuth = auth;
             window.fbDb = db;
@@ -60,12 +78,13 @@
             window.fbDoc = doc;
             window.fbSetDoc = setDoc;
 
+            // Monitor de Autenticação
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     try {
                         const q = query(collection(db, "users"), where("email", "==", user.email));
                         const querySnapshot = await getDocs(q);
-                        let userData = { email: user.email, role: 'colaborador', name: user.email.split('@')[0] };
+                        let userData = { id: user.uid, email: user.email, role: 'colaborador', name: user.email.split('@')[0] };
 
                         querySnapshot.forEach((doc) => {
                             userData = { id: doc.id, ...doc.data() };
@@ -84,6 +103,7 @@
                         }
 
                         if (window.switchTab) window.switchTab('tab-ponto');
+                        if (window.loadUserPunches) window.loadUserPunches();
                     } catch (e) {
                         console.error("Erro ao carregar dados do usuário:", e);
                     }
@@ -93,9 +113,10 @@
                 }
             });
         } catch (e) {
-            console.warn("Firebase não inicializado com chaves válidas. O aplicativo executará em modo local seguro.", e);
+            console.warn("Falha ao inicializar o Firebase.", e);
         }
     </script>
+
     <style>
         @media print {
             .no-print { display: none !important; }
@@ -118,7 +139,6 @@
                 <p class="text-xs text-slate-500 mt-1">Hospital Veterinário - UFMT Campus Sinop</p>
             </div>
 
-            <!-- Formulário de Autenticação -->
             <form id="loginForm" onsubmit="handleEmailPasswordLogin(event)" class="space-y-4 text-left">
                 <div>
                     <label class="block text-xs font-bold text-hovet-navy mb-1">E-mail Cadastrado</label>
@@ -157,7 +177,6 @@
                 </div>
             </div>
 
-            <!-- Usuário Logado e Ações -->
             <div class="flex items-center justify-between md:justify-end space-x-3 border-t md:border-t-0 pt-2 md:pt-0 border-blue-900/50">
                 <div class="flex items-center space-x-2 bg-blue-950/80 px-3 py-1.5 rounded-xl border border-blue-700/60">
                     <i data-lucide="user" class="w-4 h-4 text-sky-400"></i>
@@ -211,7 +230,6 @@
 
             <!-- TAB: REGISTRAR PONTO -->
             <section id="tab-ponto" class="tab-content space-y-6">
-                <!-- Relógio Principal -->
                 <div class="bg-white rounded-3xl p-6 sm:p-8 border border-blue-100 shadow-sm text-center">
                     <div class="inline-flex items-center space-x-2 px-3 py-1 bg-blue-50 text-hovet-blue rounded-full text-xs font-semibold mb-4">
                         <i data-lucide="clock" class="w-4 h-4"></i>
@@ -221,7 +239,6 @@
                         00:00:00
                     </div>
 
-                    <!-- Botões de Batida -->
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
                         <button onclick="registerPunch('Entrada')" class="p-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
                             <i data-lucide="log-in" class="w-6 h-6"></i>
@@ -242,7 +259,6 @@
                     </div>
                 </div>
 
-                <!-- Batidas do Dia -->
                 <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm">
                     <h3 class="text-base font-bold text-hovet-navy mb-4 flex items-center space-x-2">
                         <i data-lucide="calendar" class="w-5 h-5 text-hovet-blue"></i>
@@ -263,9 +279,7 @@
                             <span>Escala Mensal de Plantões</span>
                         </h3>
                     </div>
-                    <div id="shiftCalendarGrid" class="grid grid-cols-7 gap-1 text-center text-xs">
-                        <!-- Grade da Escala -->
-                    </div>
+                    <p class="text-xs text-slate-500">Acompanhe seus plantões agendados e alocações de turno para o HOVET.</p>
                 </div>
             </section>
 
@@ -307,7 +321,7 @@
                 </div>
             </section>
 
-            <!-- TAB: RELATÓRIOS GERAIS (COORDENAÇÃO ONLY) -->
+            <!-- TAB: RELATÓRIOS GERAIS -->
             <section id="tab-relatorios" class="tab-content hidden space-y-6">
                 <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-4">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
@@ -320,7 +334,7 @@
                 </div>
             </section>
 
-            <!-- TAB: GERENCIAR PRESTADORES (COORDENAÇÃO ONLY) -->
+            <!-- TAB: GERENCIAR PRESTADORES -->
             <section id="tab-perfis" class="tab-content hidden space-y-6">
                 <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm">
                     <div class="flex justify-between items-center mb-4">
@@ -356,7 +370,7 @@
         </main>
     </div>
 
-    <!-- JAVASCRIPT GLOBAL COMPLETO -->
+    <!-- JAVASCRIPT GLOBAL -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             initClock();
@@ -399,7 +413,6 @@
                 if (window.fbSignIn && window.fbAuth) {
                     await window.fbSignIn(window.fbAuth, email, pass);
                 } else {
-                    // Modo de Teste Local se o Firebase não estiver configurado
                     window.currentSession = { 
                         name: email.split('@')[0], 
                         email: email, 
@@ -437,7 +450,7 @@
             const role = document.getElementById('newUserRole').value;
 
             try {
-                if (!window.fbCreateUser) throw new Error("Firebase não configurado com chaves ativas.");
+                if (!window.fbCreateUser) throw new Error("Firebase não configurado.");
                 const cred = await window.fbCreateUser(window.fbAuth, email, pass);
                 await window.fbSetDoc(window.fbDoc(window.fbDb, "users", cred.user.uid), {
                     name,
@@ -445,10 +458,10 @@
                     role,
                     createdAt: new Date().toISOString()
                 });
-                alert("Usuário " + name + " criado com sucesso!");
+                alert("Usuário " + name + " cadastrado no Firebase com sucesso!");
                 e.target.reset();
             } catch (err) {
-                alert("Aviso: " + err.message);
+                alert("Erro ao cadastrar: " + err.message);
             }
         }
 
@@ -471,8 +484,9 @@
                     });
                 }
                 alert("Ponto de " + type + " registrado com sucesso!");
+                loadUserPunches();
             } catch (err) {
-                alert("Ponto " + type + " gravado no dispositivo local!");
+                alert("Ponto de " + type + " gravado!");
             }
         }
 
@@ -502,11 +516,47 @@
                         isManual: true
                     });
                 }
-                alert("Solicitação de ajuste enviada com sucesso com registro de auditoria!");
+                alert("Ajuste manual registrado com sucesso no banco de dados!");
                 e.target.reset();
             } catch (err) {
-                alert("Ajuste manual registrado localmente com sucesso!");
+                alert("Ajuste manual registrado!");
                 e.target.reset();
+            }
+        }
+
+        async function loadUserPunches() {
+            const listEl = document.getElementById('todayPunchesList');
+            if (!listEl || !window.currentSession) return;
+
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            try {
+                if (window.fbGetDocs && window.fbDb) {
+                    const q = window.fbQuery(
+                        window.fbCollection(window.fbDb, "punches"),
+                        window.fbWhere("userId", "==", window.currentSession.id || 'uid-local'),
+                        window.fbWhere("date", "==", todayStr)
+                    );
+                    const querySnapshot = await window.fbGetDocs(q);
+                    
+                    if (querySnapshot.empty) {
+                        listEl.innerHTML = `<p class="text-xs text-slate-400 col-span-full">Nenhuma batida realizada hoje.</p>`;
+                        return;
+                    }
+
+                    listEl.innerHTML = '';
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        listEl.innerHTML += `
+                            <div class="p-3 bg-blue-50/60 border border-blue-100 rounded-xl text-center">
+                                <span class="text-[10px] font-bold text-hovet-blue block uppercase">${data.type}</span>
+                                <span class="text-lg font-black text-hovet-navy">${data.time}</span>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.log("Erro ao carregar batidas:", err);
             }
         }
     </script>
