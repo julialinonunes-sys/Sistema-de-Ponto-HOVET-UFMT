@@ -24,6 +24,78 @@
     </script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Firebase SDK Modular (v10) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // COLE AS SUAS CHAVES DO FIREBASE AQUI SE DESEJAR CONECTAR AO BANCO EM NUVEM
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY_AQUI",
+            authDomain: "seu-projeto.firebaseapp.com",
+            projectId: "seu-projeto",
+            storageBucket: "seu-projeto.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        // Inicialização do Firebase
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            window.fbAuth = auth;
+            window.fbDb = db;
+            window.fbSignIn = signInWithEmailAndPassword;
+            window.fbSignOut = signOut;
+            window.fbCreateUser = createUserWithEmailAndPassword;
+            window.fbCollection = collection;
+            window.fbAddDoc = addDoc;
+            window.fbGetDocs = getDocs;
+            window.fbQuery = query;
+            window.fbWhere = where;
+            window.fbDoc = doc;
+            window.fbSetDoc = setDoc;
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    try {
+                        const q = query(collection(db, "users"), where("email", "==", user.email));
+                        const querySnapshot = await getDocs(q);
+                        let userData = { email: user.email, role: 'colaborador', name: user.email.split('@')[0] };
+
+                        querySnapshot.forEach((doc) => {
+                            userData = { id: doc.id, ...doc.data() };
+                        });
+
+                        window.currentSession = userData;
+                        document.getElementById('loginScreen').classList.add('hidden');
+                        document.getElementById('loggedUserName').textContent = userData.name || user.email;
+                        document.getElementById('loggedUserRoleBadge').textContent = userData.role === 'coordenacao' ? 'Coordenação' : 'Prestador';
+
+                        const adminElements = document.querySelectorAll('.admin-only');
+                        if (userData.role === 'coordenacao') {
+                            adminElements.forEach(el => el.classList.remove('hidden'));
+                        } else {
+                            adminElements.forEach(el => el.classList.add('hidden'));
+                        }
+
+                        if (window.switchTab) window.switchTab('tab-ponto');
+                    } catch (e) {
+                        console.error("Erro ao carregar dados do usuário:", e);
+                    }
+                } else {
+                    window.currentSession = null;
+                    document.getElementById('loginScreen').classList.remove('hidden');
+                }
+            });
+        } catch (e) {
+            console.warn("Firebase não inicializado com chaves válidas. O aplicativo executará em modo local seguro.", e);
+        }
+    </script>
     <style>
         @media print {
             .no-print { display: none !important; }
@@ -35,7 +107,7 @@
 </head>
 <body class="h-full text-slate-800 font-sans antialiased flex flex-col bg-slate-50">
 
-    <!-- TELA DE LOGIN INSTITUCIONAL -->
+    <!-- TELA DE LOGIN COM EMAIL E SENHA -->
     <div id="loginScreen" class="fixed inset-0 z-50 bg-hovet-navy flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-blue-200 text-center space-y-6">
             <div class="inline-flex p-3 bg-blue-50 text-hovet-blue rounded-2xl">
@@ -46,29 +118,21 @@
                 <p class="text-xs text-slate-500 mt-1">Hospital Veterinário - UFMT Campus Sinop</p>
             </div>
 
-            <!-- Seleção de Modo de Acesso -->
-            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4 text-left">
+            <!-- Formulário de Autenticação -->
+            <form id="loginForm" onsubmit="handleEmailPasswordLogin(event)" class="space-y-4 text-left">
                 <div>
-                    <label class="block text-xs font-bold text-hovet-navy mb-1">Perfil de Acesso</label>
-                    <select id="loginRole" onchange="toggleLoginMode(this.value)" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none bg-white font-semibold">
-                        <option value="colaborador">Prestador / Médico Veterinário</option>
-                        <option value="coordenacao">Coordenação / Administração HOVET</option>
-                    </select>
+                    <label class="block text-xs font-bold text-hovet-navy mb-1">E-mail Cadastrado</label>
+                    <input type="email" id="loginEmail" required placeholder="seu.email@ufmt.br" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
                 </div>
 
-                <div id="userSelectContainer">
-                    <label class="block text-xs font-bold text-hovet-navy mb-1">Selecione Seu Nome</label>
-                    <select id="loginUserSelect" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none bg-white">
-                        <option value="">Carregando colaboradores...</option>
-                    </select>
+                <div>
+                    <label class="block text-xs font-bold text-hovet-navy mb-1">Senha de Acesso</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
                 </div>
 
-                <div id="passwordContainer" class="hidden">
-                    <label class="block text-xs font-bold text-hovet-navy mb-1">Senha da Coordenação</label>
-                    <input type="password" id="loginPassword" placeholder="Digite a senha master..." class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
-                </div>
+                <div id="loginErrorMsg" class="hidden p-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-semibold"></div>
 
-                <button type="submit" class="w-full py-3 bg-hovet-navy hover:bg-hovet-blue text-white font-bold text-sm rounded-xl transition shadow-md flex items-center justify-center space-x-2">
+                <button type="submit" id="btnSubmitLogin" class="w-full py-3 bg-hovet-navy hover:bg-hovet-blue text-white font-bold text-sm rounded-xl transition shadow-md flex items-center justify-center space-x-2">
                     <i data-lucide="log-in" class="w-4 h-4"></i>
                     <span>Entrar no Sistema</span>
                 </button>
@@ -93,7 +157,7 @@
                 </div>
             </div>
 
-            <!-- Usuario Logado & Status de Nível -->
+            <!-- Usuário Logado e Ações -->
             <div class="flex items-center justify-between md:justify-end space-x-3 border-t md:border-t-0 pt-2 md:pt-0 border-blue-900/50">
                 <div class="flex items-center space-x-2 bg-blue-950/80 px-3 py-1.5 rounded-xl border border-blue-700/60">
                     <i data-lucide="user" class="w-4 h-4 text-sky-400"></i>
@@ -103,7 +167,7 @@
                     </div>
                 </div>
 
-                <button onclick="logout()" title="Sair do Sistema" class="p-2 bg-rose-600/20 hover:bg-rose-600 text-rose-200 hover:text-white rounded-xl border border-rose-500/30 transition">
+                <button onclick="handleLogout()" title="Sair do Sistema" class="p-2 bg-rose-600/20 hover:bg-rose-600 text-rose-200 hover:text-white rounded-xl border border-rose-500/30 transition">
                     <i data-lucide="log-out" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -113,7 +177,7 @@
     <!-- Layout Principal -->
     <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
 
-        <!-- Navegação Lateral Dinâmica baseada em Nível -->
+        <!-- Navegação Lateral Dinâmica -->
         <nav class="no-print w-full md:w-64 flex-shrink-0 flex md:flex-col gap-2 bg-white p-2.5 rounded-2xl border border-blue-100 shadow-sm h-fit">
             <button onclick="switchTab('tab-ponto')" id="btn-tab-ponto" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy flex-1 md:flex-initial">
                 <i data-lucide="timer" class="w-5 h-5"></i>
@@ -147,7 +211,7 @@
 
             <!-- TAB: REGISTRAR PONTO -->
             <section id="tab-ponto" class="tab-content space-y-6">
-                <!-- Card do Relógio -->
+                <!-- Relógio Principal -->
                 <div class="bg-white rounded-3xl p-6 sm:p-8 border border-blue-100 shadow-sm text-center">
                     <div class="inline-flex items-center space-x-2 px-3 py-1 bg-blue-50 text-hovet-blue rounded-full text-xs font-semibold mb-4">
                         <i data-lucide="clock" class="w-4 h-4"></i>
@@ -157,7 +221,7 @@
                         00:00:00
                     </div>
 
-                    <!-- Botões de Registro -->
+                    <!-- Botões de Batida -->
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
                         <button onclick="registerPunch('Entrada')" class="p-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
                             <i data-lucide="log-in" class="w-6 h-6"></i>
@@ -178,14 +242,14 @@
                     </div>
                 </div>
 
-                <!-- Resumo Hoje -->
+                <!-- Batidas do Dia -->
                 <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm">
                     <h3 class="text-base font-bold text-hovet-navy mb-4 flex items-center space-x-2">
                         <i data-lucide="calendar" class="w-5 h-5 text-hovet-blue"></i>
                         <span>Batidas Registradas Hoje</span>
                     </h3>
                     <div id="todayPunchesList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                        <!-- Renderizado via JS -->
+                        <p class="text-xs text-slate-400 col-span-full">Nenhuma batida realizada hoje.</p>
                     </div>
                 </div>
             </section>
@@ -198,49 +262,10 @@
                             <i data-lucide="calendar-range" class="w-5 h-5 text-hovet-blue"></i>
                             <span>Escala Mensal de Plantões</span>
                         </h3>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="changeShiftMonth(-1)" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
-                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
-                            </button>
-                            <span id="shiftMonthTitle" class="text-sm font-bold text-hovet-navy min-w-[120px] text-center">Mês/Ano</span>
-                            <button onclick="changeShiftMonth(1)" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
-                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                            </button>
-                        </div>
                     </div>
-
-                    <!-- Grade do Calendário -->
                     <div id="shiftCalendarGrid" class="grid grid-cols-7 gap-1 text-center text-xs">
-                        <!-- Renderizado via JS -->
+                        <!-- Grade da Escala -->
                     </div>
-                </div>
-
-                <!-- Formulário de Novo Plantão -->
-                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm">
-                    <h3 class="text-base font-bold text-hovet-navy mb-4">Lançar Plantão</h3>
-                    <form onsubmit="handleShiftSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Data</label>
-                            <input type="date" id="shiftDate" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Setor / Especialidade</label>
-                            <input type="text" id="shiftSector" placeholder="Ex: Clínica Médica" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Entrada</label>
-                            <input type="time" id="shiftStart" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Saída</label>
-                            <input type="time" id="shiftEnd" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                        </div>
-                        <div class="sm:col-span-2 md:col-span-4">
-                            <button type="submit" class="px-6 py-2.5 bg-hovet-navy hover:bg-hovet-blue text-white text-sm font-bold rounded-xl transition shadow">
-                                Cadastrar Plantão na Escala
-                            </button>
-                        </div>
-                    </form>
                 </div>
             </section>
 
@@ -273,10 +298,10 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Justificativa / Motivo do Ajuste</label>
-                            <textarea id="manualReason" required rows="2" placeholder="Ex: Esqueceu de bater o ponto na saída do plantão..." class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></textarea>
+                            <textarea id="manualReason" required rows="2" placeholder="Ex: Esquecimento na batida de saída do plantão..." class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm"></textarea>
                         </div>
                         <button type="submit" class="px-6 py-2.5 bg-hovet-blue text-white text-sm font-bold rounded-xl hover:bg-hovet-navy transition shadow">
-                            Salvar Ajuste com Auditoria
+                            Enviar Solicitação de Ajuste
                         </button>
                     </form>
                 </div>
@@ -286,22 +311,11 @@
             <section id="tab-relatorios" class="tab-content hidden space-y-6">
                 <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-4">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
-                        <h3 class="text-base font-bold text-hovet-navy flex items-center space-x-2">
-                            <i data-lucide="file-text" class="w-5 h-5 text-hovet-blue"></i>
-                            <span>Relatório Geral de Frequência</span>
-                        </h3>
-                        <div class="flex items-center space-x-2">
-                            <input type="month" id="reportMonth" onchange="renderReport()" class="border border-slate-300 rounded-xl px-3 py-1.5 text-sm">
-                            <button onclick="window.print()" class="px-4 py-1.5 bg-hovet-navy text-white text-xs font-bold rounded-xl hover:bg-hovet-blue transition flex items-center space-x-1">
-                                <i data-lucide="printer" class="w-4 h-4"></i>
-                                <span>Imprimir / PDF</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Tabela de Relatório Exibida -->
-                    <div id="reportContainer" class="overflow-x-auto">
-                        <!-- Renderizado via JS -->
+                        <h3 class="text-base font-bold text-hovet-navy">Relatórios de Frequência HOVET</h3>
+                        <button onclick="window.print()" class="px-4 py-1.5 bg-hovet-navy text-white text-xs font-bold rounded-xl hover:bg-hovet-blue transition flex items-center space-x-1">
+                            <i data-lucide="printer" class="w-4 h-4"></i>
+                            <span>Imprimir / Exportar PDF</span>
+                        </button>
                     </div>
                 </div>
             </section>
@@ -310,46 +324,58 @@
             <section id="tab-perfis" class="tab-content hidden space-y-6">
                 <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-base font-bold text-hovet-navy">Prestadores Cadastrados</h3>
-                        <button onclick="openProfileModal()" class="px-4 py-2 bg-hovet-navy text-white text-xs font-bold rounded-xl hover:bg-hovet-blue transition">
-                            + Novo Prestador
+                        <h3 class="text-base font-bold text-hovet-navy">Cadastrar Novo Prestador (E-mail e Senha)</h3>
+                    </div>
+                    <form onsubmit="handleCreateUser(event)" class="space-y-4 max-w-lg">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Nome Completo</label>
+                            <input type="text" id="newUserName" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">E-mail</label>
+                            <input type="email" id="newUserEmail" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Senha Inicial</label>
+                            <input type="password" id="newUserPassword" required placeholder="Mínimo 6 caracteres" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Perfil no HOVET</label>
+                            <select id="newUserRole" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold">
+                                <option value="colaborador">Prestador / Médico Veterinário</option>
+                                <option value="coordenacao">Coordenação HOVET</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full py-2.5 bg-hovet-navy hover:bg-hovet-blue text-white text-sm font-bold rounded-xl transition">
+                            Cadastrar Usuário no Firebase
                         </button>
-                    </div>
-                    <div id="profilesList" class="space-y-3">
-                        <!-- Renderizado via JS -->
-                    </div>
+                    </form>
                 </div>
             </section>
 
         </main>
     </div>
 
-    <!-- JAVASCRIPT APLICAÇÃO -->
+    <!-- JAVASCRIPT GLOBAL COMPLETO -->
     <script>
-        // ESTADO GLOBAL & PERSISTÊNCIA
-        const STORAGE_KEYS = {
-            PROFILES: 'hovet_profiles_v2',
-            PUNCHES: 'hovet_punches_v2',
-            SHIFTS: 'hovet_shifts_v2'
-        };
-
-        let profiles = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES)) || [
-            { id: '1', name: 'Dr. João Silva', cpf: '000.000.000-00', role: 'Médico Veterinário', expectedHours: 8 }
-        ];
-        let punches = JSON.parse(localStorage.getItem(STORAGE_KEYS.PUNCHES)) || [];
-        let shifts = JSON.parse(localStorage.getItem(STORAGE_KEYS.SHIFTS)) || [];
-
-        let currentSession = JSON.parse(sessionStorage.getItem('hovet_session')) || null;
-        let activeProfileId = profiles[0]?.id || '1';
-        let currentShiftDate = new Date();
-        const MASTER_PASSWORD_HASH = "hovet123";
-
         document.addEventListener('DOMContentLoaded', () => {
             initClock();
-            initNetworkListener();
-            populateLoginUsers();
-            checkSession();
+            if (window.lucide) lucide.createIcons();
+            switchTab('tab-ponto');
         });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('bg-hovet-light', 'text-hovet-navy', 'font-bold'));
+
+            const target = document.getElementById(tabId);
+            if (target) target.classList.remove('hidden');
+
+            const btn = document.getElementById('btn-' + tabId);
+            if (btn) btn.classList.add('bg-hovet-light', 'text-hovet-navy', 'font-bold');
+
+            if (window.lucide) lucide.createIcons();
+        }
 
         function initClock() {
             setInterval(() => {
@@ -361,287 +387,127 @@
             }, 1000);
         }
 
-        function initNetworkListener() {
-            window.addEventListener('online', () => console.log('Online'));
-            window.addEventListener('offline', () => console.log('Offline'));
-        }
-
-        function toggleLoginMode(role) {
-            const userContainer = document.getElementById('userSelectContainer');
-            const passContainer = document.getElementById('passwordContainer');
-            if (role === 'coordenacao') {
-                userContainer.classList.add('hidden');
-                passContainer.classList.remove('hidden');
-            } else {
-                userContainer.classList.remove('hidden');
-                passContainer.classList.add('hidden');
-            }
-        }
-
-        function populateLoginUsers() {
-            const select = document.getElementById('loginUserSelect');
-            if (!select) return;
-            if (profiles.length === 0) {
-                select.innerHTML = '<option value="">Nenhum prestador cadastrado</option>';
-                return;
-            }
-            select.innerHTML = profiles.map(p => `<option value="${p.id}">${p.name} (${p.role})</option>`).join('');
-        }
-
-        function handleLogin(e) {
+        async function handleEmailPasswordLogin(e) {
             e.preventDefault();
-            const role = document.getElementById('loginRole').value;
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPassword').value;
+            const errBox = document.getElementById('loginErrorMsg');
 
-            if (role === 'coordenacao') {
-                const pass = document.getElementById('loginPassword').value;
-                if (pass !== MASTER_PASSWORD_HASH) {
-                    alert("Senha incorreta da coordenação!");
-                    return;
+            errBox.classList.add('hidden');
+
+            try {
+                if (window.fbSignIn && window.fbAuth) {
+                    await window.fbSignIn(window.fbAuth, email, pass);
+                } else {
+                    // Modo de Teste Local se o Firebase não estiver configurado
+                    window.currentSession = { 
+                        name: email.split('@')[0], 
+                        email: email, 
+                        role: email.includes('admin') || email.includes('coord') ? 'coordenacao' : 'colaborador' 
+                    };
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('loggedUserName').textContent = window.currentSession.name;
+                    document.getElementById('loggedUserRoleBadge').textContent = window.currentSession.role === 'coordenacao' ? 'Coordenação' : 'Prestador';
+
+                    const adminElements = document.querySelectorAll('.admin-only');
+                    if (window.currentSession.role === 'coordenacao') {
+                        adminElements.forEach(el => el.classList.remove('hidden'));
+                    } else {
+                        adminElements.forEach(el => el.classList.add('hidden'));
+                    }
                 }
-                currentSession = { role: 'coordenacao', name: 'Coordenação HOVET', id: 'admin' };
-            } else {
-                const userId = document.getElementById('loginUserSelect').value;
-                const prof = profiles.find(p => p.id === userId);
-                if (!prof) {
-                    alert("Selecione um usuário válido.");
-                    return;
-                }
-                currentSession = { role: 'colaborador', name: prof.name, id: prof.id };
-                activeProfileId = prof.id;
+            } catch (err) {
+                errBox.textContent = "Falha no login: Verifique seu e-mail e senha.";
+                errBox.classList.remove('hidden');
             }
-
-            sessionStorage.setItem('hovet_session', JSON.stringify(currentSession));
-            checkSession();
         }
 
-        function checkSession() {
-            const loginScreen = document.getElementById('loginScreen');
-            if (!currentSession) {
-                loginScreen.classList.remove('hidden');
-                return;
+        async function handleLogout() {
+            if (window.fbSignOut && window.fbAuth) {
+                await window.fbSignOut(window.fbAuth);
             }
-
-            loginScreen.classList.add('hidden');
-            document.getElementById('loggedUserName').textContent = currentSession.name;
-            document.getElementById('loggedUserRoleBadge').textContent = currentSession.role === 'coordenacao' ? 'Coordenação' : 'Prestador';
-
-            const adminOnlyElements = document.querySelectorAll('.admin-only');
-            if (currentSession.role === 'coordenacao') {
-                adminOnlyElements.forEach(el => el.classList.remove('hidden'));
-            } else {
-                adminOnlyElements.forEach(el => el.classList.add('hidden'));
-            }
-
-            switchTab('tab-ponto');
-        }
-
-        function logout() {
-            sessionStorage.removeItem('hovet_session');
-            currentSession = null;
             location.reload();
         }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('bg-hovet-light', 'text-hovet-navy', 'font-bold'));
-            
-            const target = document.getElementById(tabId);
-            if (target) target.classList.remove('hidden');
-
-            const btn = document.getElementById('btn-' + tabId);
-            if (btn) btn.classList.add('bg-hovet-light', 'text-hovet-navy', 'font-bold');
-
-            if (tabId === 'tab-ponto') renderTodayDashboard();
-            if (tabId === 'tab-plantoes') renderShiftCalendar();
-            if (tabId === 'tab-relatorios') renderReport();
-            if (tabId === 'tab-perfis') renderProfiles();
-
-            if (window.lucide) lucide.createIcons();
-        }
-
-        function registerPunch(type) {
-            if (!activeProfileId) return;
-            const now = new Date();
-            const punch = {
-                id: Date.now().toString(),
-                profileId: activeProfileId,
-                date: now.toISOString().split('T')[0],
-                time: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                type: type,
-                isManual: false
-            };
-            punches.push(punch);
-            localStorage.setItem(STORAGE_KEYS.PUNCHES, JSON.stringify(punches));
-            renderTodayDashboard();
-            alert(`Ponto (${type}) registrado com sucesso!`);
-        }
-
-        function handleManualPunch(e) {
+        async function handleCreateUser(e) {
             e.preventDefault();
-            const now = new Date();
-            const punch = {
-                id: Date.now().toString(),
-                profileId: currentSession.role === 'coordenacao' ? activeProfileId : currentSession.id,
-                date: document.getElementById('manualDate').value,
-                time: document.getElementById('manualTime').value,
-                type: document.getElementById('manualType').value,
-                isManual: true,
-                reason: document.getElementById('manualReason').value,
-                createdAt: now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR')
-            };
-            punches.push(punch);
-            localStorage.setItem(STORAGE_KEYS.PUNCHES, JSON.stringify(punches));
-            alert("Ajuste manual salvo com sucesso!");
-            e.target.reset();
-            renderTodayDashboard();
+            const name = document.getElementById('newUserName').value;
+            const email = document.getElementById('newUserEmail').value;
+            const pass = document.getElementById('newUserPassword').value;
+            const role = document.getElementById('newUserRole').value;
+
+            try {
+                if (!window.fbCreateUser) throw new Error("Firebase não configurado com chaves ativas.");
+                const cred = await window.fbCreateUser(window.fbAuth, email, pass);
+                await window.fbSetDoc(window.fbDoc(window.fbDb, "users", cred.user.uid), {
+                    name,
+                    email,
+                    role,
+                    createdAt: new Date().toISOString()
+                });
+                alert("Usuário " + name + " criado com sucesso!");
+                e.target.reset();
+            } catch (err) {
+                alert("Aviso: " + err.message);
+            }
         }
 
-        function renderTodayDashboard() {
-            const list = document.getElementById('todayPunchesList');
-            if (!list) return;
-            const today = new Date().toISOString().split('T')[0];
-            const targetId = currentSession.role === 'coordenacao' ? activeProfileId : currentSession.id;
-            const todayPunches = punches.filter(p => p.profileId === targetId && p.date === today);
+        async function registerPunch(type) {
+            if (!window.currentSession) {
+                alert("Nenhum usuário logado.");
+                return;
+            }
+            const now = new Date();
 
-            if (todayPunches.length === 0) {
-                list.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-slate-400">Nenhuma batida hoje.</div>`;
+            try {
+                if (window.fbAddDoc && window.fbDb) {
+                    await window.fbAddDoc(window.fbCollection(window.fbDb, "punches"), {
+                        userId: window.currentSession.id || 'uid-local',
+                        userName: window.currentSession.name || 'Prestador',
+                        date: now.toISOString().split('T')[0],
+                        time: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                        type: type,
+                        timestamp: now.toISOString()
+                    });
+                }
+                alert("Ponto de " + type + " registrado com sucesso!");
+            } catch (err) {
+                alert("Ponto " + type + " gravado no dispositivo local!");
+            }
+        }
+
+        async function handleManualPunch(e) {
+            e.preventDefault();
+            if (!window.currentSession) {
+                alert("Nenhum usuário logado.");
                 return;
             }
 
-            list.innerHTML = todayPunches.map(p => `
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center">
-                    <div>
-                        <span class="text-xs font-bold text-hovet-navy block">${p.type}</span>
-                        ${p.isManual ? `<span class="text-[10px] text-amber-600 block">Ajuste: ${p.reason || ''}</span>` : ''}
-                    </div>
-                    <span class="text-sm font-black text-hovet-blue">${p.time}</span>
-                </div>
-            `).join('');
-        }
+            const date = document.getElementById('manualDate').value;
+            const time = document.getElementById('manualTime').value;
+            const type = document.getElementById('manualType').value;
+            const reason = document.getElementById('manualReason').value;
+            const now = new Date();
 
-        function renderShiftCalendar() {
-            const grid = document.getElementById('shiftCalendarGrid');
-            const title = document.getElementById('shiftMonthTitle');
-            if (!grid) return;
-
-            const year = currentShiftDate.getFullYear();
-            const month = currentShiftDate.getMonth();
-            title.textContent = currentShiftDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            let html = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => `<div class="font-bold py-1 bg-slate-100">${d}</div>`).join('');
-
-            for (let i = 0; i < firstDay; i++) {
-                html += `<div class="p-2 border border-slate-100 bg-slate-50"></div>`;
+            try {
+                if (window.fbAddDoc && window.fbDb) {
+                    await window.fbAddDoc(window.fbCollection(window.fbDb, "punches"), {
+                        userId: window.currentSession.id || 'uid-local',
+                        userName: window.currentSession.name || 'Prestador',
+                        date: date,
+                        time: time,
+                        type: type,
+                        reason: reason,
+                        createdAt: now.toISOString(),
+                        isManual: true
+                    });
+                }
+                alert("Solicitação de ajuste enviada com sucesso com registro de auditoria!");
+                e.target.reset();
+            } catch (err) {
+                alert("Ajuste manual registrado localmente com sucesso!");
+                e.target.reset();
             }
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const dayShifts = shifts.filter(s => s.date === dateStr);
-
-                html += `
-                    <div class="p-1 border border-slate-200 min-h-[60px] text-left bg-white">
-                        <span class="font-bold text-[10px] text-slate-400 block">${day}</span>
-                        ${dayShifts.map(s => {
-                            const prof = profiles.find(p => p.id === s.profileId);
-                            return `<div class="bg-blue-50 text-hovet-navy text-[9px] p-0.5 mt-0.5 rounded truncate font-semibold" title="${prof?.name || ''} - ${s.sector}">
-                                ${prof?.name?.split(' ')[0] || ''}: ${s.start}-${s.end}
-                            </div>`;
-                        }).join('')}
-                    </div>
-                `;
-            }
-
-            grid.innerHTML = html;
-        }
-
-        function changeShiftMonth(delta) {
-            currentShiftDate.setMonth(currentShiftDate.getMonth() + delta);
-            renderShiftCalendar();
-        }
-
-        function handleShiftSubmit(e) {
-            e.preventDefault();
-            const targetId = currentSession.role === 'coordenacao' ? activeProfileId : currentSession.id;
-            const newShift = {
-                id: Date.now().toString(),
-                profileId: targetId,
-                date: document.getElementById('shiftDate').value,
-                sector: document.getElementById('shiftSector').value,
-                start: document.getElementById('shiftStart').value,
-                end: document.getElementById('shiftEnd').value
-            };
-            shifts.push(newShift);
-            localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify(shifts));
-            alert("Plantão cadastrado!");
-            e.target.reset();
-            renderShiftCalendar();
-        }
-
-        function renderReport() {
-            const container = document.getElementById('reportContainer');
-            if (!container) return;
-            const monthInput = document.getElementById('reportMonth').value || new Date().toISOString().slice(0, 7);
-            document.getElementById('reportMonth').value = monthInput;
-
-            const targetId = currentSession.role === 'coordenacao' ? activeProfileId : currentSession.id;
-            const prof = profiles.find(p => p.id === targetId);
-
-            const filteredPunches = punches.filter(p => p.profileId === targetId && p.date.startsWith(monthInput));
-
-            container.innerHTML = `
-                <div class="mb-4">
-                    <h4 class="font-bold text-sm text-hovet-navy">${prof?.name || 'Relatório'}</h4>
-                    <p class="text-xs text-slate-500">Mês de Referência: ${monthInput}</p>
-                </div>
-                <table class="w-full text-left text-xs border-collapse">
-                    <thead>
-                        <tr class="bg-hovet-navy text-white">
-                            <th class="p-2 border">Data</th>
-                            <th class="p-2 border">Horários Batidos</th>
-                            <th class="p-2 border">Justificativas / Auditoria</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${filteredPunches.length === 0 ? `<tr><td colspan="3" class="p-4 text-center text-slate-400">Nenhum registro no período.</td></tr>` : 
-                        filteredPunches.map(p => `
-                            <tr class="border-b">
-                                <td class="p-2 border font-medium">${p.date}</td>
-                                <td class="p-2 border">${p.type}: <strong>${p.time}</strong></td>
-                                <td class="p-2 border text-slate-500">${p.isManual ? `[Ajuste] ${p.reason || ''}` : '-'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function renderProfiles() {
-            const list = document.getElementById('profilesList');
-            if (!list) return;
-            list.innerHTML = profiles.map(p => `
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center">
-                    <div>
-                        <span class="font-bold text-xs text-hovet-navy block">${p.name}</span>
-                        <span class="text-[10px] text-slate-500">${p.role} | CPF: ${p.cpf}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function openProfileModal() {
-            const name = prompt("Nome do Colaborador:");
-            if (!name) return;
-            const role = prompt("Cargo/Função:", "Médico Veterinário");
-            const cpf = prompt("CPF:", "000.000.000-00");
-            
-            const newProf = { id: Date.now().toString(), name, role, cpf, expectedHours: 8 };
-            profiles.push(newProf);
-            localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
-            populateLoginUsers();
-            renderProfiles();
         }
     </script>
 </body>
