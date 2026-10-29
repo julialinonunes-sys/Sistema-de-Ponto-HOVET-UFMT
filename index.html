@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ponto HOVET - Hospital Veterinário UFMT Sinop</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        hovet: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae0fd',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#0f172a',
+                            navy: '#002b5c',
+                            blue: '#0056b3',
+                            light: '#e8f2fc'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+            .shadow-card { box-shadow: none !important; border: 1px solid #cbd5e1 !important; }
+        }
+        .print-only { display: none; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="h-full text-slate-800 font-sans antialiased flex flex-col bg-slate-50">
+
+    <!-- Header Institucional UFMT HOVET -->
+    <header class="bg-hovet-navy text-white sticky top-0 z-40 shadow-lg no-print border-b-4 border-blue-500">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex items-center space-x-3.5">
+                <div class="bg-white p-2 rounded-xl text-hovet-navy flex items-center justify-center font-bold shadow-md">
+                    <i data-lucide="cross" class="w-7 h-7 text-hovet-blue"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base sm:text-lg leading-tight tracking-wide text-white">
+                        Hospital Veterinário (HOVET)
+                    </h1>
+                    <p class="text-xs text-blue-200 font-medium">
+                        Universidade Federal de Mato Grosso - Campus Sinop
+                    </p>
+                </div>
+            </div>
+
+            <!-- Seleção de Prestador e Conexão -->
+            <div class="flex items-center justify-between md:justify-end space-x-3 border-t md:border-t-0 pt-2 md:pt-0 border-blue-900/50">
+                <!-- Badge Conexão -->
+                <div id="connectionStatus" class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="connectionText">Online</span>
+                </div>
+
+                <!-- Seletor do Prestador -->
+                <div class="relative min-w-[200px]">
+                    <select id="headerProfileSelect" onchange="changeActiveProfile(this.value)" class="w-full bg-blue-950/80 text-white text-xs sm:text-sm rounded-lg border border-blue-700/60 px-3 py-1.5 pr-8 focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer">
+                        <option value="">Selecione o Prestador/Médico...</option>
+                    </select>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-blue-300 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Layout Principal -->
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
+
+        <!-- Navegação Lateral -->
+        <nav class="no-print w-full md:w-64 flex-shrink-0 flex md:flex-col gap-2 bg-white p-2.5 rounded-2xl border border-blue-100 shadow-sm h-fit">
+            <button onclick="switchTab('tab-ponto')" id="btn-tab-ponto" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy flex-1 md:flex-initial">
+                <i data-lucide="timer" class="w-5 h-5"></i>
+                <span>Registrar Ponto</span>
+            </button>
+            <button onclick="switchTab('tab-plantoes')" id="btn-tab-plantoes" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy flex-1 md:flex-initial">
+                <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                <span>Escala de Plantões</span>
+            </button>
+            <button onclick="switchTab('tab-relatorios')" id="btn-tab-relatorios" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy flex-1 md:flex-initial">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+                <span>Relatório Mensal</span>
+            </button>
+            <button onclick="switchTab('tab-perfis')" id="btn-tab-perfis" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy flex-1 md:flex-initial">
+                <i data-lucide="users" class="w-5 h-5"></i>
+                <span>Prestadores / Corpo Técnico</span>
+            </button>
+            <button onclick="switchTab('tab-ajuste')" id="btn-tab-ajuste" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy flex-1 md:flex-initial">
+                <i data-lucide="edit-3" class="w-5 h-5"></i>
+                <span>Ajuste / Ponto Manual</span>
+            </button>
+        </nav>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 min-w-0">
+
+            <!-- ALERTA QUANDO NÃO HÁ PERFIL SELECIONADO -->
+            <div id="noProfileAlert" class="hidden bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl mb-6 flex items-start space-x-3 shadow-sm no-print">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+                <div class="text-sm">
+                    <span class="font-semibold">Nenhum prestador selecionado!</span>
+                    <p class="mt-0.5">Selecione um profissional no topo da página ou cadastre na aba <a href="#" onclick="switchTab('tab-perfis')" class="underline font-semibold hover:text-amber-950">Prestadores</a> para liberar o registro de ponto.</p>
+                </div>
+            </div>
+
+            <!-- ================= TAB 1: REGISTRO DE PONTO ================= -->
+            <section id="tab-ponto" class="tab-content space-y-6">
+                <!-- Display do Relógio e Ações de Registro -->
+                <div class="bg-white rounded-2xl border border-blue-100 shadow-sm p-6 sm:p-8 text-center relative overflow-hidden">
+                    <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-hovet-navy via-hovet-blue to-sky-400"></div>
+                    
+                    <p id="currentDateDisplay" class="text-slate-500 font-medium text-sm sm:text-base capitalize">Carregando data...</p>
+                    <div id="clockDisplay" class="text-5xl sm:text-7xl font-extrabold text-hovet-navy tracking-tight my-3 font-mono">00:00:00</div>
+                    
+                    <div class="mt-2 inline-flex items-center gap-2 px-3.5 py-1 bg-hovet-light rounded-full text-xs font-semibold text-hovet-navy border border-blue-200">
+                        <i data-lucide="clock" class="w-3.5 h-3.5 text-hovet-blue"></i>
+                        <span>Jornada Diária Prevista:</span>
+                        <span id="currentProfileWorkday" class="font-bold">8h</span>
+                    </div>
+
+                    <!-- Botões Principais de Ponto -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-8">
+                        <button onclick="registerPunch('Entrada')" class="flex flex-col items-center justify-center p-4 rounded-xl bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 active:scale-95 transition text-emerald-800 group shadow-xs">
+                            <div class="p-3 rounded-full bg-emerald-600 text-white mb-2 group-hover:scale-110 transition shadow-sm">
+                                <i data-lucide="log-in" class="w-6 h-6"></i>
+                            </div>
+                            <span class="font-bold text-sm">Entrada</span>
+                        </button>
+
+                        <button onclick="registerPunch('Saída Almoço')" class="flex flex-col items-center justify-center p-4 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 active:scale-95 transition text-amber-800 group shadow-xs">
+                            <div class="p-3 rounded-full bg-amber-500 text-white mb-2 group-hover:scale-110 transition shadow-sm">
+                                <i data-lucide="utensils" class="w-6 h-6"></i>
+                            </div>
+                            <span class="font-bold text-sm">Saída Intervalo</span>
+                        </button>
+
+                        <button onclick="registerPunch('Retorno Almoço')" class="flex flex-col items-center justify-center p-4 rounded-xl bg-sky-50 border border-sky-200 hover:bg-sky-100 active:scale-95 transition text-sky-800 group shadow-xs">
+                            <div class="p-3 rounded-full bg-hovet-blue text-white mb-2 group-hover:scale-110 transition shadow-sm">
+                                <i data-lucide="coffee" class="w-6 h-6"></i>
+                            </div>
+                            <span class="font-bold text-sm">Volta Intervalo</span>
+                        </button>
+
+                        <button onclick="registerPunch('Saída')" class="flex flex-col items-center justify-center p-4 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 active:scale-95 transition text-rose-800 group shadow-xs">
+                            <div class="p-3 rounded-full bg-rose-600 text-white mb-2 group-hover:scale-110 transition shadow-sm">
+                                <i data-lucide="log-out" class="w-6 h-6"></i>
+                            </div>
+                            <span class="font-bold text-sm">Saída Final</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Resumo Diário e Lista de Registros -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Cards Estatísticos -->
+                    <div class="bg-white rounded-2xl border border-blue-100 shadow-sm p-5 space-y-4">
+                        <h3 class="text-xs font-bold text-hovet-navy uppercase tracking-wider border-b border-blue-100 pb-2">Resumo do Dia HOVET</h3>
+                        
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <span class="text-xs text-slate-600 font-medium">Horas Trabalhadas</span>
+                            <span id="todayWorkedHours" class="font-bold text-lg text-hovet-navy">0h 0m</span>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <span class="text-xs text-slate-600 font-medium">Saldo do Dia</span>
+                            <span id="todayBalanceHours" class="font-bold text-lg text-slate-700">0h 0m</span>
+                        </div>
+                    </div>
+
+                    <!-- Batidas do Dia -->
+                    <div class="md:col-span-2 bg-white rounded-2xl border border-blue-100 shadow-sm p-5">
+                        <div class="flex items-center justify-between mb-4 border-b border-blue-100 pb-2">
+                            <h3 class="text-xs font-bold text-hovet-navy uppercase tracking-wider">Batidas de Hoje</h3>
+                            <span id="todayPunchCount" class="text-xs bg-hovet-light font-bold px-2.5 py-1 rounded-full text-hovet-navy border border-blue-200">0 registros</span>
+                        </div>
+
+                        <div id="todayPunchesList" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                            <p class="text-sm text-slate-400 text-center py-6">Nenhum ponto registrado hoje.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= TAB 2: ESCALA E REGISTRO DE PLANTÕES ================= -->
+            <section id="tab-plantoes" class="tab-content hidden space-y-6">
+                
+                <!-- Visualização do Calendário Mensal da Escala HOVET -->
+                <div class="bg-white rounded-2xl border border-blue-100 shadow-sm p-5 sm:p-6 space-y-4">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-b border-blue-100 pb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-2.5 rounded-xl bg-hovet-light text-hovet-navy">
+                                <i data-lucide="calendar" class="w-6 h-6 text-hovet-blue"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-extrabold text-hovet-navy">Calendário Mensal da Escala HOVET</h2>
+                                <p class="text-xs text-slate-500">Visualização completa dos plantonistas e corpo técnico escalado</p>
+                            </div>
+                        </div>
+
+                        <!-- Seletor de Mês do Calendário -->
+                        <div class="flex items-center space-x-2">
+                            <button onclick="navigateShiftCalendar(-1)" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                            </button>
+                            <span id="shiftCalendarMonthTitle" class="text-sm font-bold text-hovet-navy min-w-[140px] text-center capitalize">Carregando...</span>
+                            <button onclick="navigateShiftCalendar(1)" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grade do Calendário -->
+                    <div class="overflow-x-auto">
+                        <div class="min-w-[650px]">
+                            <!-- Dias da semana -->
+                            <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs text-hovet-navy uppercase bg-slate-50 py-2 rounded-lg border border-slate-200 mb-1">
+                                <div>Dom</div>
+                                <div>Seg</div>
+                                <div>Ter</div>
+                                <div>Qua</div>
+                                <div>Qui</div>
+                                <div>Sex</div>
+                                <div>Sáb</div>
+                            </div>
+                            <!-- Dias do Mês -->
+                            <div id="shiftCalendarGrid" class="grid grid-cols-7 gap-1.5 text-xs">
+                                <!-- Preenchido dinamicamente via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Formulário de Registro de Plantão -->
+                    <div class="bg-white rounded-2xl border border-blue-100 shadow-sm p-6 space-y-4">
+                        <div class="border-b border-blue-100 pb-3 flex items-center space-x-2">
+                            <i data-lucide="shield-alert" class="w-5 h-5 text-hovet-blue"></i>
+                            <h2 class="text-lg font-extrabold text-hovet-navy">Lançar / Marcar Plantão HOVET</h2>
+                        </div>
+
+                        <!-- Relógio Digital Rápido para Plantão -->
+                        <div class="bg-slate-900 text-white rounded-xl p-4 text-center space-y-2 shadow-inner border border-slate-800">
+                            <span class="text-[10px] font-bold tracking-widest text-sky-400 uppercase">Horário Atual (Relógio HOVET)</span>
+                            <div id="shiftClockDisplay" class="text-3xl font-mono font-extrabold text-emerald-400">00:00:00</div>
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <button type="button" onclick="setShiftTimeNow('start')" class="py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1 shadow-sm">
+                                    <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
+                                    <span>Entrada Agora</span>
+                                </button>
+                                <button type="button" onclick="setShiftTimeNow('end')" class="py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1 shadow-sm">
+                                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                                    <span>Saída Agora</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <form id="shiftForm" onsubmit="handleShiftSubmit(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-hovet-navy mb-1">Data do Plantão *</label>
+                                <input type="date" id="shiftDate" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-hovet-navy mb-1">Entrada *</label>
+                                    <input type="time" id="shiftStartTime" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-hovet-navy mb-1">Saída *</label>
+                                    <input type="time" id="shiftEndTime" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-hovet-navy mb-1">Setor / Especialidade *</label>
+                                <select id="shiftSector" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none bg-white">
+                                    <option value="Urgência e Emergência HOVET">Urgência e Emergência HOVET</option>
+                                    <option value="Clínica Médica de Pequenos Animais">Clínica Médica de Pequenos Animais</option>
+                                    <option value="Clínica Cirúrgica e Anestesiologia">Clínica Cirúrgica e Anestesiologia</option>
+                                    <option value="Clínica e Cirurgia de Grandes Animais">Clínica e Cirurgia de Grandes Animais</option>
+                                    <option value="Internação e UTIVet">Internação e UTIVet</option>
+                                    <option value="Diagnóstico por Imagem e Laboratório">Diagnóstico por Imagem e Laboratório</option>
+                                    <option value="Atendimento Noturno e Final de Semana">Atendimento Noturno / FDS</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-hovet-navy mb-1">Observações do Plantão</label>
+                                <textarea id="shiftNotes" rows="2" placeholder="Ex: Plantão cobrindo urgência cirúrgica noturna" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none"></textarea>
+                            </div>
+
+                            <button type="submit" class="w-full py-2.5 bg-hovet-navy hover:bg-hovet-blue text-white font-bold text-sm rounded-xl transition shadow-sm flex items-center justify-center space-x-2">
+                                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                                <span>Salvar Plantão na Escala</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Lista de Plantões Registrados do Prestador Ativo -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl border border-blue-100 shadow-sm p-6 space-y-4">
+                        <div class="flex items-center justify-between border-b border-blue-100 pb-3">
+                            <div>
+                                <h3 class="text-base font-extrabold text-hovet-navy">Histórico de Plantões Realizados</h3>
+                                <p class="text-xs text-slate-500">Plantões contabilizados para o prestador selecionado</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs text-slate-400 block font-semibold">Total Horas Plantão</span>
+                                <span id="shiftTotalHoursDisplay" class="font-extrabold text-hovet-blue text-lg">0h 0m</span>
+                            </div>
+                        </div>
+
+                        <div id="shiftsList" class="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+                            <!-- Inserido via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ================= TAB 3: RELATÓRIO MENSAL ================= -->
+            <section id="tab-relatorios" class="tab-content hidden space-y-6">
+                <!-- Filtros e Ações -->
+                <div class="bg-white rounded-2xl border border-blue-100 shadow-sm p-5 no-print">
+                    <div class="flex flex-col md:flex-row gap-4 items-end justify-between">
+                        <div class="w-full md:w-auto">
+                            <label class="block text-xs font-bold text-hovet-navy mb-1">Mês e Ano de Referência</label>
+                            <input type="month" id="reportMonthFilter" onchange="renderMonthlyReport()" class="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                        </div>
+
+                        <div class="flex items-center gap-2 w-full md:w-auto">
+                            <button onclick="exportCSV()" class="flex-1 md:flex-initial inline-flex items-center justify-center space-x-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg transition border border-slate-300">
+                                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i>
+                                <span>Exportar Excel/CSV</span>
+                            </button>
+                            <button onclick="window.print()" class="flex-1 md:flex-initial inline-flex items-center justify-center space-x-2 px-4 py-2 bg-hovet-navy hover:bg-hovet-blue text-white text-sm font-semibold rounded-lg shadow-sm transition">
+                                <i data-lucide="printer" class="w-4 h-4"></i>
+                                <span>Imprimir / PDF</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Relatório Impresso HOVET -->
+                <div class="bg-white rounded-2xl border border-blue-100 p-6 sm:p-8 space-y-6 shadow-card">
+                    <!-- Cabeçalho do Documento para Impressão -->
+                    <div class="border-b-2 border-hovet-navy pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <div class="flex items-center space-x-2 mb-1">
+                                <i data-lucide="cross" class="w-5 h-5 text-hovet-blue"></i>
+                                <span class="text-xs font-bold text-hovet-navy uppercase tracking-widest">UFMT - Campus Sinop</span>
+                            </div>
+                            <h2 class="text-xl font-extrabold text-hovet-navy">Hospital Veterinário (HOVET)</h2>
+                            <p class="text-sm font-medium text-slate-600">Relatório Mensal Integrado de Ponto e Escala de Plantões</p>
+                            <p id="reportSubHeader" class="text-xs text-slate-500 mt-1">Carregando...</p>
+                        </div>
+                        <div class="text-left sm:text-right text-xs text-slate-600 space-y-1 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <p><span class="font-bold text-hovet-navy">Prestador:</span> <span id="reportProfileName">-</span></p>
+                            <p><span class="font-bold text-hovet-navy">CPF/CRMV:</span> <span id="reportProfileDoc">-</span></p>
+                            <p><span class="font-bold text-hovet-navy">Função:</span> <span id="reportProfileRole">-</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Cards de Totais -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-center">
+                            <span class="text-[11px] text-slate-500 uppercase font-semibold">Horas Ponto Regular</span>
+                            <div id="reportTotalWorked" class="text-xl font-bold text-hovet-navy mt-1">00:00</div>
+                        </div>
+                        <div class="bg-sky-50/70 border border-sky-200 rounded-xl p-3.5 text-center">
+                            <span class="text-[11px] text-hovet-navy uppercase font-semibold">Horas em Plantões</span>
+                            <div id="reportTotalShiftsHours" class="text-xl font-bold text-hovet-blue mt-1">00:00</div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-center">
+                            <span class="text-[11px] text-slate-500 uppercase font-semibold">Saldo de Horas / Extras</span>
+                            <div id="reportTotalBalance" class="text-xl font-bold text-slate-800 mt-1">00:00</div>
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Frequência e Plantões -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-hovet-navy text-white text-[11px] uppercase font-semibold">
+                                    <th class="py-3 px-2.5">Data</th>
+                                    <th class="py-3 px-2.5">Horários dos Pontos Batidos</th>
+                                    <th class="py-3 px-2.5">Plantão HOVET</th>
+                                    <th class="py-3 px-2.5 text-right">Horas Ponto</th>
+                                    <th class="py-3 px-2.5 text-right">Horas Plantão</th>
+                                    <th class="py-3 px-2.5 text-right">Saldo Dia</th>
+                                    <th class="py-3 px-2.5">Anexo / Justificativas / Ocorrências</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody" class="divide-y divide-slate-200 text-slate-700">
+                                <!-- Inserido via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Campo de Assinaturas Institucionais -->
+                    <div class="pt-12 mt-8 border-t border-slate-300 grid grid-cols-2 gap-8 text-center text-xs text-slate-600">
+                        <div>
+                            <div class="border-t border-slate-400 mx-auto w-56 mb-1"></div>
+                            <p class="font-bold text-hovet-navy" id="signatureProfileName">Assinatura do Prestador</p>
+                            <p class="text-[10px] text-slate-400">Prestador de Serviço / Médico Veterinário</p>
+                        </div>
+                        <div>
+                            <div class="border-t border-slate-400 mx-auto w-56 mb-1"></div>
+                            <p class="font-bold text-hovet-navy">Direção / Coordenação HOVET</p>
+                            <p class="text-[10px] text-slate-400">UFMT - Campus Sinop</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ================= TAB 4: GERENCIAMENTO DE PRESTADORES ================= -->
+            <section id="tab-perfis" class="tab-content hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-hovet-navy">Corpo Técnico e Prestadores</h2>
+                        <p class="text-xs text-slate-500">Cadastre médicos veterinários, residentes e técnicos do HOVET.</p>
+                    </div>
+                    <button onclick="openProfileModal()" class="inline-flex items-center space-x-2 px-4 py-2 bg-hovet-blue hover:bg-hovet-navy text-white text-sm font-bold rounded-xl shadow-sm transition">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Novo Prestador</span>
+                    </button>
+                </div>
+
+                <div id="profilesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Cards via JS -->
+                </div>
+            </section>
+
+
+            <!-- ================= TAB 5: AJUSTE / PONTO MANUAL ================= -->
+            <section id="tab-ajuste" class="tab-content hidden space-y-6">
+                <div class="bg-white rounded-2xl border border-blue-100 shadow-sm p-6 max-w-2xl mx-auto">
+                    <div class="mb-6 border-b border-blue-100 pb-3">
+                        <h2 class="text-xl font-extrabold text-hovet-navy">Ajuste / Lançamento Manual de Ponto</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Qualquer lançamento efetuado nesta área grava a data e hora exatas da alteração para efeito de auditoria HOVET.</p>
+                    </div>
+
+                    <form id="manualPunchForm" onsubmit="handleManualPunch(event)" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-hovet-navy mb-1">Data do Evento *</label>
+                                <input type="date" id="manualDate" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-hovet-navy mb-1">Hora do Evento *</label>
+                                <input type="time" id="manualTime" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-hovet-navy mb-1">Tipo de Batida *</label>
+                                <select id="manualType" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none bg-white">
+                                    <option value="Entrada">Entrada</option>
+                                    <option value="Saída Almoço">Saída Intervalo</option>
+                                    <option value="Retorno Almoço">Retorno Intervalo</option>
+                                    <option value="Saída">Saída Final</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-hovet-navy mb-1">Justificativa do Ajuste *</label>
+                                <input type="text" id="manualReason" placeholder="Ex: Atendimento cirúrgico de emergência" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="pt-3 flex justify-end">
+                            <button type="submit" class="px-5 py-2.5 bg-hovet-navy hover:bg-hovet-blue text-white font-bold text-sm rounded-xl transition shadow-sm">
+                                Registrar Ajuste com Auditoria
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODAL NOVO/EDITAR PERFIL -->
+    <div id="profileModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl border border-blue-100 shadow-2xl max-w-lg w-full p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-blue-100 pb-3">
+                <h3 id="modalProfileTitle" class="text-lg font-extrabold text-hovet-navy">Novo Prestador HOVET</h3>
+                <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="profileForm" onsubmit="saveProfile(event)" class="space-y-4">
+                <input type="hidden" id="profileId">
+
+                <div>
+                    <label class="block text-xs font-bold text-hovet-navy mb-1">Nome Completo *</label>
+                    <input type="text" id="profName" required placeholder="Ex: Dr. Carlos Eduardo Medeiros" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-hovet-navy mb-1">CPF ou CRMV</label>
+                        <input type="text" id="profDoc" placeholder="CRMV/MT 0000" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-hovet-navy mb-1">Cargo / Especialidade *</label>
+                        <input type="text" id="profRole" required placeholder="Ex: Med. Vet. Anestesiologista" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-hovet-navy mb-1">Jornada Diária (Horas) *</label>
+                    <input type="number" step="0.5" min="1" max="24" id="profWorkday" required value="8" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeProfileModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-hovet-blue hover:bg-hovet-navy text-white rounded-lg text-sm font-bold transition">Salvar Cadastro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICAÇÃO -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div id="toastContent" class="bg-hovet-navy text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 text-sm border border-blue-400/30">
+            <i id="toastIcon" data-lucide="check-circle" class="w-5 h-5 text-sky-400"></i>
+            <span id="toastMessage">Ação realizada com sucesso!</span>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APLICAÇÃO -->
+    <script>
+        // Chaves para LocalStorage
+        const STORAGE_KEYS = {
+            PROFILES: 'hovet_profiles_v2',
+            PUNCHES: 'hovet_punches_v2',
+            SHIFTS: 'hovet_shifts_v2',
+            ACTIVE_PROFILE: 'hovet_active_profile_v2'
+        };
+
+        // Estado Global
+        let profiles = JSON.parse(localStorage.getItem(STORAGE_KEYS.PROFILES)) || [];
+        let punches = JSON.parse(localStorage.getItem(STORAGE_KEYS.PUNCHES)) || [];
+        let shifts = JSON.parse(localStorage.getItem(STORAGE_KEYS.SHIFTS)) || [];
+        let activeProfileId = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE) || (profiles[0] ? profiles[0].id : null);
+        let currentCalendarDate = new Date();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initClock();
+            initNetworkListener();
+            updateProfileSelectors();
+            switchTab('tab-ponto');
+            
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            document.getElementById('reportMonthFilter').value = `${yyyy}-${mm}`;
+            document.getElementById('manualDate').valueAsDate = today;
+            document.getElementById('shiftDate').valueAsDate = today;
+
+            lucide.createIcons();
+        });
+
+        // Monitoramento da Rede (Offline/Online)
+        function initNetworkListener() {
+            function updateStatus() {
+                const isOnline = navigator.onLine;
+                const badge = document.getElementById('connectionStatus');
+                const text = document.getElementById('connectionText');
+                if (isOnline) {
+                    badge.className = "flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/30";
+                    text.textContent = "Online";
+                } else {
+                    badge.className = "flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-400/30";
+                    text.textContent = "Offline (Local)";
+                }
+            }
+            window.addEventListener('online', updateStatus);
+            window.addEventListener('offline', updateStatus);
+            updateStatus();
+        }
+
+        function getActiveProfile() {
+            return profiles.find(p => p.id === activeProfileId) || null;
+        }
+
+        function saveProfilesToStorage() {
+            localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
+        }
+
+        function savePunchesToStorage() {
+            localStorage.setItem(STORAGE_KEYS.PUNCHES, JSON.stringify(punches));
+        }
+
+        function saveShiftsToStorage() {
+            localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify(shifts));
+        }
+
+        function updateProfileSelectors() {
+            const select = document.getElementById('headerProfileSelect');
+            const alertEl = document.getElementById('noProfileAlert');
+
+            select.innerHTML = '<option value="">Selecione o Prestador/Médico...</option>' +
+                profiles.map(p => `<option value="${p.id}" ${p.id === activeProfileId ? 'selected' : ''}>${p.name} (${p.role})</option>`).join('');
+
+            const active = getActiveProfile();
+            if (!active) {
+                if (alertEl) alertEl.classList.remove('hidden');
+                document.getElementById('currentProfileWorkday').textContent = '-';
+            } else {
+                if (alertEl) alertEl.classList.add('hidden');
+                document.getElementById('currentProfileWorkday').textContent = `${active.workdayHours}h`;
+            }
+        }
+
+        function changeActiveProfile(profileId) {
+            activeProfileId = profileId || null;
+            if (activeProfileId) {
+                localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE, activeProfileId);
+            } else {
+                localStorage.removeItem(STORAGE_KEYS.ACTIVE_PROFILE);
+            }
+            updateProfileSelectors();
+            renderTodayDashboard();
+            renderShiftsList();
+            renderMonthlyReport();
+        }
+
+        // Relógio Digital
+        function initClock() {
+            function update() {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('pt-BR');
+                
+                const clockDisplay = document.getElementById('clockDisplay');
+                if (clockDisplay) clockDisplay.textContent = timeStr;
+
+                const shiftClockDisplay = document.getElementById('shiftClockDisplay');
+                if (shiftClockDisplay) shiftClockDisplay.textContent = timeStr;
+
+                const dateDisplay = document.getElementById('currentDateDisplay');
+                if (dateDisplay) {
+                    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    dateDisplay.textContent = now.toLocaleDateString('pt-BR', options);
+                }
+            }
+            update();
+            setInterval(update, 1000);
+        }
+
+        function registerPunch(type) {
+            const active = getActiveProfile();
+            if (!active) {
+                showToast("Selecione um prestador no topo primeiro!", "alert-circle", "bg-rose-900");
+                return;
+            }
+
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            const newPunch = {
+                id: 'punch_' + Date.now(),
+                profileId: activeProfileId,
+                date: todayStr,
+                time: timeStr,
+                type,
+                isManual: false,
+                createdAt: null
+            };
+
+            punches.push(newPunch);
+            savePunchesToStorage();
+            showToast(`Ponto de ${type} registrado!`, "check-circle", "bg-emerald-700");
+            renderTodayDashboard();
+        }
+
+        function handleManualPunch(e) {
+            e.preventDefault();
+            const active = getActiveProfile();
+            if (!active) {
+                showToast("Selecione um prestador no topo primeiro!", "alert-circle", "bg-rose-900");
+                return;
+            }
+
+            const date = document.getElementById('manualDate').value;
+            const time = document.getElementById('manualTime').value;
+            const type = document.getElementById('manualType').value;
+            const reason = document.getElementById('manualReason').value;
+
+            const now = new Date();
+            const createdAtStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR');
+
+            const newPunch = {
+                id: 'punch_' + Date.now(),
+                profileId: activeProfileId,
+                date,
+                time,
+                type,
+                isManual: true,
+                reason,
+                createdAt: createdAtStr
+            };
+
+            punches.push(newPunch);
+            savePunchesToStorage();
+
+            document.getElementById('manualPunchForm').reset();
+            document.getElementById('manualDate').valueAsDate = new Date();
+
+            showToast("Ajuste salvo com auditoria!", "edit-3", "bg-hovet-navy");
+            renderTodayDashboard();
+        }
+
+        function calculateDayWorkedMinutes(profileId, dateStr) {
+            const dayPunches = punches
+                .filter(p => p.profileId === profileId && p.date === dateStr)
+                .sort((a, b) => a.time.localeCompare(b.time));
+
+            let totalMinutes = 0;
+            let lastInTime = null;
+
+            dayPunches.forEach(p => {
+                const [hh, mm] = p.time.split(':').map(Number);
+                const punchMin = hh * 60 + mm;
+
+                if (p.type === 'Entrada' || p.type === 'Retorno Almoço') {
+                    lastInTime = punchMin;
+                } else if ((p.type === 'Saída Almoço' || p.type === 'Saída') && lastInTime !== null) {
+                    totalMinutes += (punchMin - lastInTime);
+                    lastInTime = null;
+                }
+            });
+
+            return { totalMinutes, dayPunches };
+        }
+
+        function formatMinutesToHM(minutes) {
+            const sign = minutes < 0 ? '-' : '';
+            const absMin = Math.abs(minutes);
+            const h = Math.floor(absMin / 60);
+            const m = absMin % 60;
+            return `${sign}${h}h ${m}m`;
+        }
+
+        function renderTodayDashboard() {
+            const active = getActiveProfile();
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            if (!active) {
+                document.getElementById('todayWorkedHours').textContent = '0h 0m';
+                document.getElementById('todayBalanceHours').textContent = '0h 0m';
+                document.getElementById('todayPunchCount').textContent = '0 registros';
+                document.getElementById('todayPunchesList').innerHTML = `<p class="text-sm text-slate-400 text-center py-6">Selecione um prestador para visualizar.</p>`;
+                return;
+            }
+
+            const { totalMinutes, dayPunches } = calculateDayWorkedMinutes(activeProfileId, todayStr);
+            const expectedMinutes = (active.workdayHours || 8) * 60;
+            const balanceMinutes = totalMinutes - expectedMinutes;
+
+            document.getElementById('todayWorkedHours').textContent = formatMinutesToHM(totalMinutes);
+            
+            const balEl = document.getElementById('todayBalanceHours');
+            balEl.textContent = formatMinutesToHM(balanceMinutes);
+            balEl.className = `font-bold text-lg ${balanceMinutes >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+
+            document.getElementById('todayPunchCount').textContent = `${dayPunches.length} registro(s)`;
+
+            const listEl = document.getElementById('todayPunchesList');
+            if (dayPunches.length === 0) {
+                listEl.innerHTML = `<p class="text-sm text-slate-400 text-center py-6">Nenhum ponto registrado hoje.</p>`;
+                return;
+            }
+
+            listEl.innerHTML = dayPunches.map(p => `
+                <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div class="flex items-center space-x-3">
+                        <span class="p-2 rounded-lg font-bold text-xs ${p.type === 'Entrada' ? 'bg-emerald-100 text-emerald-800' : p.type === 'Saída' ? 'bg-rose-100 text-rose-800' : 'bg-slate-200 text-slate-700'}">
+                            ${p.type}
+                        </span>
+                        <div>
+                            <span class="font-extrabold text-hovet-navy font-mono text-base">${p.time}</span>
+                            ${p.isManual ? `<p class="text-[10px] text-amber-700 font-semibold">Manual [${p.createdAt}]: ${p.reason}</p>` : ''}
+                        </div>
+                    </div>
+                    <button onclick="deletePunch('${p.id}')" class="text-slate-400 hover:text-rose-600 p-1">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function deletePunch(id) {
+            if (confirm("Deseja apagar este ponto registrado?")) {
+                punches = punches.filter(p => p.id !== id);
+                savePunchesToStorage();
+                renderTodayDashboard();
+                renderMonthlyReport();
+                showToast("Ponto removido.", "trash-2", "bg-slate-800");
+            }
+        }
+
+        function closeProfileModal() {
+            document.getElementById('profileModal').classList.add('hidden');
+        }
+
+        function openProfileModal(profileId = null) {
+            const form = document.getElementById('profileForm');
+            form.reset();
+            
+            if (profileId) {
+                const prof = profiles.find(p => p.id === profileId);
+                if (prof) {
+                    document.getElementById('profileId').value = prof.id;
+                    document.getElementById('profName').value = prof.name;
+                    document.getElementById('profDoc').value = prof.doc || '';
+                    document.getElementById('profRole').value = prof.role;
+                    document.getElementById('profWorkday').value = prof.workdayHours;
+                    document.getElementById('modalProfileTitle').textContent = "Editar Prestador";
+                }
+            } else {
+                document.getElementById('profileId').value = '';
+                document.getElementById('modalProfileTitle').textContent = "Novo Prestador HOVET";
+            }
+            document.getElementById('profileModal').classList.remove('hidden');
+        }
+
+        function saveProfile(e) {
+            e.preventDefault();
+            const id = document.getElementById('profileId').value;
+            const name = document.getElementById('profName').value;
+            const doc = document.getElementById('profDoc').value;
+            const role = document.getElementById('profRole').value;
+            const workdayHours = parseFloat(document.getElementById('profWorkday').value) || 8;
+
+            if (id) {
+                const idx = profiles.findIndex(p => p.id === id);
+                if (idx !== -1) {
+                    profiles[idx] = { id, name, doc, role, workdayHours };
+                }
+            } else {
+                const newProf = {
+                    id: 'prof_' + Date.now(),
+                    name,
+                    doc,
+                    role,
+                    workdayHours
+                };
+                profiles.push(newProf);
+                if (!activeProfileId) activeProfileId = newProf.id;
+            }
+
+            saveProfilesToStorage();
+            updateProfileSelectors();
+            renderProfilesGrid();
+            closeProfileModal();
+            showToast("Prestador salvo com sucesso!", "check-circle", "bg-emerald-700");
+        }
+
+        function deleteProfile(id) {
+            if (confirm("Deseja realmente excluir este prestador? Os pontos e plantões associados serão mantidos.")) {
+                profiles = profiles.filter(p => p.id !== id);
+                if (activeProfileId === id) activeProfileId = profiles[0] ? profiles[0].id : null;
+                saveProfilesToStorage();
+                updateProfileSelectors();
+                renderProfilesGrid();
+                renderTodayDashboard();
+                showToast("Prestador removido.", "trash-2", "bg-slate-800");
+            }
+        }
+
+        function renderProfilesGrid() {
+            const grid = document.getElementById('profilesGrid');
+            if (!grid) return;
+
+            if (profiles.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-white p-8 rounded-2xl border border-blue-100 text-center">
+                        <i data-lucide="users" class="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
+                        <p class="text-sm font-semibold text-slate-600">Nenhum prestador cadastrado.</p>
+                        <p class="text-xs text-slate-400 mt-1">Clique em "Novo Prestador" para iniciar.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = profiles.map(p => `
+                <div class="bg-white p-5 rounded-2xl border ${p.id === activeProfileId ? 'border-2 border-hovet-blue shadow-md' : 'border-blue-100 shadow-sm'} space-y-3">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="font-extrabold text-hovet-navy text-base">${p.name}</h3>
+                            <p class="text-xs text-slate-500 font-medium">${p.role}</p>
+                            ${p.doc ? `<p class="text-[11px] text-slate-400">Doc: ${p.doc}</p>` : ''}
+                        </div>
+                        <span class="px-2.5 py-1 bg-hovet-light text-hovet-navy text-xs font-bold rounded-lg border border-blue-200">
+                            ${p.workdayHours}h / dia
+                        </span>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <button onclick="changeActiveProfile('${p.id}')" class="text-xs font-bold ${p.id === activeProfileId ? 'text-emerald-600' : 'text-hovet-blue hover:underline'}">
+                            ${p.id === activeProfileId ? '✓ Selecionado' : 'Selecionar'}
+                        </button>
+                        <div class="flex space-x-2">
+                            <button onclick="openProfileModal('${p.id}')" class="p-1.5 text-slate-400 hover:text-hovet-blue">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteProfile('${p.id}')" class="p-1.5 text-slate-400 hover:text-rose-600">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function setShiftTimeNow(type) {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const timeStr = `${hh}:${mm}`;
+
+            document.getElementById('shiftDate').valueAsDate = now;
+
+            if (type === 'start') {
+                document.getElementById('shiftStartTime').value = timeStr;
+                showToast(`Entrada definida para ${timeStr}`, "log-in", "bg-emerald-700");
+            } else if (type === 'end') {
+                document.getElementById('shiftEndTime').value = timeStr;
+                showToast(`Saída definida para ${timeStr}`, "log-out", "bg-rose-700");
+            }
+        }
+
+        function handleShiftSubmit(e) {
+            e.preventDefault();
+            const active = getActiveProfile();
+            if (!active) {
+                showToast("Selecione um prestador no topo primeiro!", "alert-circle", "bg-rose-900");
+                return;
+            }
+
+            const date = document.getElementById('shiftDate').value;
+            const startTime = document.getElementById('shiftStartTime').value;
+            const endTime = document.getElementById('shiftEndTime').value;
+            const sector = document.getElementById('shiftSector').value;
+            const notes = document.getElementById('shiftNotes').value;
+
+            const [h1, m1] = startTime.split(':').map(Number);
+            const [h2, m2] = endTime.split(':').map(Number);
+            let startMin = h1 * 60 + m1;
+            let endMin = h2 * 60 + m2;
+            if (endMin <= startMin) endMin += 24 * 60; // Trata virada de noite
+            const durationMinutes = endMin - startMin;
+
+            const newShift = {
+                id: 'shift_' + Date.now(),
+                profileId: activeProfileId,
+                date,
+                startTime,
+                endTime,
+                sector,
+                notes,
+                durationMinutes
+            };
+
+            shifts.push(newShift);
+            saveShiftsToStorage();
+
+            document.getElementById('shiftForm').reset();
+            document.getElementById('shiftDate').valueAsDate = new Date();
+
+            showToast("Plantão adicionado à escala!", "shield-alert", "bg-hovet-navy");
+            renderShiftsList();
+            renderShiftCalendar();
+            renderMonthlyReport();
+        }
+
+        function renderShiftsList() {
+            const active = getActiveProfile();
+            const container = document.getElementById('shiftsList');
+            const totalDisplay = document.getElementById('shiftTotalHoursDisplay');
+
+            if (!container) return;
+
+            if (!active) {
+                container.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">Selecione um prestador para visualizar os plantões.</p>`;
+                if (totalDisplay) totalDisplay.textContent = '0h 0m';
+                return;
+            }
+
+            const profShifts = shifts
+                .filter(s => s.profileId === activeProfileId)
+                .sort((a, b) => b.date.localeCompare(a.date));
+
+            const totalMin = profShifts.reduce((acc, curr) => acc + curr.durationMinutes, 0);
+            if (totalDisplay) totalDisplay.textContent = formatMinutesToHM(totalMin);
+
+            if (profShifts.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">Nenhum plantão registrado para este prestador.</p>`;
+                return;
+            }
+
+            container.innerHTML = profShifts.map(s => {
+                const dateParts = s.date.split('-');
+                const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+                return `
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
+                        <div>
+                            <div class="flex items-center space-x-2 mb-1">
+                                <span class="font-bold text-xs text-hovet-navy bg-hovet-light px-2 py-0.5 rounded border border-blue-200">${formattedDate}</span>
+                                <span class="text-xs font-semibold text-slate-600 font-mono">${s.startTime} às ${s.endTime}</span>
+                                <span class="text-xs font-bold text-hovet-blue bg-sky-50 px-2 py-0.5 rounded">(${formatMinutesToHM(s.durationMinutes)})</span>
+                            </div>
+                            <p class="text-xs font-bold text-slate-800">${s.sector}</p>
+                            ${s.notes ? `<p class="text-[11px] text-slate-500 mt-0.5">${s.notes}</p>` : ''}
+                        </div>
+                        <button onclick="deleteShift('${s.id}')" class="text-slate-400 hover:text-rose-600 p-1">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function deleteShift(id) {
+            if (confirm("Deseja excluir este plantão da escala?")) {
+                shifts = shifts.filter(s => s.id !== id);
+                saveShiftsToStorage();
+                renderShiftsList();
+                renderShiftCalendar();
+                renderMonthlyReport();
+                showToast("Plantão removido.", "trash-2", "bg-slate-800");
+            }
+        }
+
+        function navigateShiftCalendar(direction) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+            renderShiftCalendar();
+        }
+
+        function renderShiftCalendar() {
+            const gridEl = document.getElementById('shiftCalendarGrid');
+            const titleEl = document.getElementById('shiftCalendarMonthTitle');
+            if (!gridEl || !titleEl) return;
+
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+
+            const monthName = currentCalendarDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+            titleEl.textContent = monthName;
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+
+            let html = '';
+
+            for (let i = 0; i < firstDayIndex; i++) {
+                html += `<div class="bg-slate-100/50 rounded-lg min-h-[90px] border border-dashed border-slate-200"></div>`;
+            }
+
+            const today = new Date();
+            const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = isCurrentMonth && today.getDate() === day;
+
+                const dayShifts = shifts.filter(s => s.date === dateStr);
+
+                let shiftsBadges = '';
+                if (dayShifts.length > 0) {
+                    shiftsBadges = dayShifts.map(s => {
+                        const prof = profiles.find(p => p.id === s.profileId);
+                        const profName = prof ? prof.name.split(' ')[0] : 'Desconhecido';
+                        return `
+                            <div class="bg-hovet-navy text-white text-[10px] p-1 rounded font-medium truncate shadow-xs mb-1" title="${prof ? prof.name : ''} - ${s.sector} (${s.startTime} - ${s.endTime})">
+                                <span class="font-bold text-sky-300">${profName}</span>: ${s.startTime}-${s.endTime}
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                html += `
+                    <div class="bg-white rounded-lg min-h-[95px] p-1.5 border ${isToday ? 'border-2 border-hovet-blue bg-blue-50/20' : 'border-slate-200'} flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-xs ${isToday ? 'bg-hovet-blue text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-slate-700'}">${day}</span>
+                            ${dayShifts.length > 0 ? `<span class="text-[9px] bg-blue-100 text-hovet-navy font-bold px-1 rounded">${dayShifts.length} plantão(ões)</span>` : ''}
+                        </div>
+                        <div class="flex-1 overflow-y-auto max-h-[65px] scrollbar-thin">
+                            ${shiftsBadges}
+                        </div>
+                    </div>
+                `;
+            }
+
+            gridEl.innerHTML = html;
+        }
+
+        function renderMonthlyReport() {
+            const active = getActiveProfile();
+            const monthVal = document.getElementById('reportMonthFilter').value; // YYYY-MM
+            const tbody = document.getElementById('reportTableBody');
+
+            if (!active || !monthVal) {
+                document.getElementById('reportProfileName').textContent = '-';
+                document.getElementById('reportProfileDoc').textContent = '-';
+                document.getElementById('reportProfileRole').textContent = '-';
+                document.getElementById('signatureProfileName').textContent = 'Assinatura do Prestador';
+                document.getElementById('reportTotalWorked').textContent = '00:00';
+                document.getElementById('reportTotalShiftsHours').textContent = '00:00';
+                document.getElementById('reportTotalBalance').textContent = '00:00';
+                tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Selecione um prestador e um mês válido.</td></tr>`;
+                return;
+            }
+
+            document.getElementById('reportProfileName').textContent = active.name;
+            document.getElementById('reportProfileDoc').textContent = active.doc || 'Não informado';
+            document.getElementById('reportProfileRole').textContent = active.role;
+            document.getElementById('signatureProfileName').textContent = active.name;
+
+            const [yearStr, monthStr] = monthVal.split('-');
+            const year = parseInt(yearStr);
+            const month = parseInt(monthStr) - 1;
+
+            const dateObj = new Date(year, month, 1);
+            const monthName = dateObj.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+            document.getElementById('reportSubHeader').textContent = `Mês de Referência: ${monthName.toUpperCase()}`;
+
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            let grandTotalWorkedMin = 0;
+            let grandTotalShiftMin = 0;
+            let grandTotalExpectedMin = 0;
+
+            let tableHtml = '';
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const currentD = new Date(year, month, d);
+                const dateIso = `${yearStr}-${monthStr}-${String(d).padStart(2, '0')}`;
+                const dayOfWeek = currentD.getDay(); // 0 = Dom, 6 = Sáb
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+                const { totalMinutes, dayPunches } = calculateDayWorkedMinutes(activeProfileId, dateIso);
+                const dayShifts = shifts.filter(s => s.profileId === activeProfileId && s.date === dateIso);
+                const shiftMinutes = dayShifts.reduce((acc, curr) => acc + curr.durationMinutes, 0);
+
+                const expectedMin = isWeekend ? 0 : (active.workdayHours || 8) * 60;
+                const balanceMin = totalMinutes + shiftMinutes - expectedMin;
+
+                grandTotalWorkedMin += totalMinutes;
+                grandTotalShiftMin += shiftMinutes;
+                grandTotalExpectedMin += expectedMin;
+
+                // Formatação dos horários
+                const punchTimesStr = dayPunches.length > 0 
+                    ? dayPunches.map(p => `${p.type}: ${p.time}`).join(' | ') 
+                    : '-';
+
+                // Formatação dos plantões
+                const shiftTimesStr = dayShifts.length > 0
+                    ? dayShifts.map(s => `${s.sector} (${s.startTime}-${s.endTime})`).join('; ')
+                    : '-';
+
+                // Coleta de justificativas/anexos
+                const manualPunches = dayPunches.filter(p => p.isManual);
+                let notesArray = [];
+                if (manualPunches.length > 0) {
+                    manualPunches.forEach(mp => {
+                        notesArray.push(`[Ajuste em ${mp.createdAt}] ${mp.type}: ${mp.reason}`);
+                    });
+                }
+                dayShifts.forEach(s => {
+                    if (s.notes) notesArray.push(`[Plantão] ${s.notes}`);
+                });
+
+                const notesStr = notesArray.length > 0 ? notesArray.join('<br>') : '-';
+
+                const dateFormatted = `${String(d).padStart(2, '0')}/${monthStr}/${yearStr}`;
+                const weekDayName = currentD.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+
+                tableHtml += `
+                    <tr class="${isWeekend ? 'bg-slate-100/70' : 'hover:bg-slate-50'}">
+                        <td class="py-2.5 px-2.5 font-bold ${isWeekend ? 'text-hovet-blue' : 'text-slate-800'}">
+                            ${dateFormatted} <span class="text-[10px] font-normal uppercase text-slate-500">(${weekDayName})</span>
+                        </td>
+                        <td class="py-2.5 px-2.5 font-mono text-[11px]">${punchTimesStr}</td>
+                        <td class="py-2.5 px-2.5 text-[11px]">${shiftTimesStr}</td>
+                        <td class="py-2.5 px-2.5 text-right font-bold text-slate-700">${totalMinutes > 0 ? formatMinutesToHM(totalMinutes) : '-'}</td>
+                        <td class="py-2.5 px-2.5 text-right font-bold text-hovet-blue">${shiftMinutes > 0 ? formatMinutesToHM(shiftMinutes) : '-'}</td>
+                        <td class="py-2.5 px-2.5 text-right font-bold ${balanceMin > 0 ? 'text-emerald-600' : balanceMin < 0 ? 'text-rose-600' : 'text-slate-400'}">
+                            ${(totalMinutes > 0 || shiftMinutes > 0 || expectedMin > 0) ? formatMinutesToHM(balanceMin) : '-'}
+                        </td>
+                        <td class="py-2.5 px-2.5 text-[10px] text-slate-600 leading-tight">${notesStr}</td>
+                    </tr>
+                `;
+            }
+
+            tbody.innerHTML = tableHtml;
+
+            const totalBalanceMin = grandTotalWorkedMin + grandTotalShiftMin - grandTotalExpectedMin;
+
+            document.getElementById('reportTotalWorked').textContent = formatMinutesToHM(grandTotalWorkedMin);
+            document.getElementById('reportTotalShiftsHours').textContent = formatMinutesToHM(grandTotalShiftMin);
+            
+            const balEl = document.getElementById('reportTotalBalance');
+            balEl.textContent = formatMinutesToHM(totalBalanceMin);
+            balEl.className = `text-xl font-bold mt-1 ${totalBalanceMin >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+        }
+
+        function exportCSV() {
+            const active = getActiveProfile();
+            const monthVal = document.getElementById('reportMonthFilter').value;
+            if (!active || !monthVal) {
+                alert("Selecione um prestador e um mês válido para exportar.");
+                return;
+            }
+
+            const [yearStr, monthStr] = monthVal.split('-');
+            const year = parseInt(yearStr);
+            const month = parseInt(monthStr) - 1;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Data;Horarios_Pontos;Plantoes_Setor;Horas_Ponto;Horas_Plantao;Saldo_Dia;Justificativas_E_Auditoria\n";
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateIso = `${yearStr}-${monthStr}-${String(d).padStart(2, '0')}`;
+                const currentD = new Date(year, month, d);
+                const isWeekend = currentD.getDay() === 0 || currentD.getDay() === 6;
+
+                const { totalMinutes, dayPunches } = calculateDayWorkedMinutes(activeProfileId, dateIso);
+                const dayShifts = shifts.filter(s => s.profileId === activeProfileId && s.date === dateIso);
+                const shiftMinutes = dayShifts.reduce((acc, curr) => acc + curr.durationMinutes, 0);
+
+                const expectedMin = isWeekend ? 0 : (active.workdayHours || 8) * 60;
+                const balanceMin = totalMinutes + shiftMinutes - expectedMin;
+
+                const punchTimesStr = dayPunches.map(p => `${p.type}: ${p.time}`).join(' | ');
+                const shiftTimesStr = dayShifts.map(s => `${s.sector} (${s.startTime}-${s.endTime})`).join('; ');
+
+                let notesArray = [];
+                dayPunches.filter(p => p.isManual).forEach(mp => {
+                    notesArray.push(`[Ajuste em ${mp.createdAt}] ${mp.type}: ${mp.reason}`);
+                });
+                dayShifts.forEach(s => {
+                    if (s.notes) notesArray.push(`[Plantao] ${s.notes}`);
+                });
+
+                const rowData = [
+                    `${String(d).padStart(2, '0')}/${monthStr}/${yearStr}`,
+                    `"${punchTimesStr}"`,
+                    `"${shiftTimesStr}"`,
+                    formatMinutesToHM(totalMinutes),
+                    formatMinutesToHM(shiftMinutes),
+                    formatMinutesToHM(balanceMin),
+                    `"${notesArray.join(' | ')}"`
+                ];
+
+                csvContent += rowData.join(";") + "\n";
+            }
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Relatorio_HOVET_${active.name.replace(/\s+/g, '_')}_${monthVal}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-hovet-light', 'text-hovet-navy', 'font-bold');
+                btn.classList.add('text-slate-600');
+            });
+
+            const selectedTab = document.getElementById(tabId);
+            if (selectedTab) selectedTab.classList.remove('hidden');
+
+            const activeBtn = document.getElementById('btn-' + tabId);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-hovet-light', 'text-hovet-navy', 'font-bold');
+                activeBtn.classList.remove('text-slate-600');
+            }
+
+            if (tabId === 'tab-ponto') renderTodayDashboard();
+            if (tabId === 'tab-plantoes') {
+                renderShiftsList();
+                renderShiftCalendar();
+            }
+            if (tabId === 'tab-relatorios') renderMonthlyReport();
+            if (tabId === 'tab-perfis') renderProfilesGrid();
+        }
+
+        function showToast(message, iconName = 'check-circle', bgColor = 'bg-hovet-navy') {
+            const toast = document.getElementById('toast');
+            const toastContent = document.getElementById('toastContent');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMessage.textContent = message;
+            toastIcon.setAttribute('data-lucide', iconName);
+            toastContent.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 text-sm border border-blue-400/30`;
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
