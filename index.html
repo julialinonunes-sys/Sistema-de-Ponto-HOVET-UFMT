@@ -30,25 +30,14 @@
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, query, where, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyCP_2xC3vTilXgrdLAQ_UsGp-mSEE-3oz0",
-    authDomain: "ponto-eletronico-hovet-ufmt.firebaseapp.com",
-    projectId: "ponto-eletronico-hovet-ufmt",
-    storageBucket: "ponto-eletronico-hovet-ufmt.firebasestorage.app",
-    messagingSenderId: "755317322283",
-    appId: "1:755317322283:web:7780136065f30d7cad306e"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-</script>
+        // SUBSTIU AQUI PELAS SUAS CHAVES COPIADAS DO FIREBASE CONSOLE
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY_REAL_AQUI",
+            authDomain: "seu-projeto-real.firebaseapp.com",
+            projectId: "seu-projeto-real",
+            storageBucket: "seu-projeto-real.appspot.com",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
         };
 
         // Inicialização do Firebase
