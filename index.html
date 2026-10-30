@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Ponto e Plantões - HOVET UFMT Sinop</title>
-    <!-- PWA Web Manifest para acesso offline -->
-    <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22Ponto%20HOVET%20UFMT%22%2C%22short_name%22%3A%22PontoHOVET%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23002b5c%22%2C%22theme_color%22%3A%22%23002b5c%22%7D">
+    <!-- Configuração PWA -->
     <meta name="theme-color" content="#002b5c">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="PontoHOVET">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -97,7 +98,6 @@
                             console.warn("Consulta Firestore 'users' falhou, usando sessão padrão local:", e);
                         }
 
-                        // Se for o e-mail da coordenação cadastrado e ainda não tiver perfil salvo no Firestore, garante perfil
                         if (user.email === 'coordenacao.sinop@ufmt.br' || user.email.includes('admin') || user.email.includes('coord')) {
                             userData.role = 'coordenacao';
                         }
@@ -266,22 +266,30 @@
                         <span id="geoStatusText">Capturando localização GPS...</span>
                     </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mt-6">
                         <button onclick="registerPunch('Entrada')" class="p-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
-                            <i data-lucide="log-in" class="w-6 h-6"></i>
+                            <i data-lucide="log-in" class="w-5 h-5"></i>
                             <span class="text-xs">Entrada</span>
                         </button>
                         <button onclick="registerPunch('Saída Almoço')" class="p-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
-                            <i data-lucide="utensils" class="w-6 h-6"></i>
+                            <i data-lucide="utensils" class="w-5 h-5"></i>
                             <span class="text-xs">Saída Almoço</span>
                         </button>
                         <button onclick="registerPunch('Retorno Almoço')" class="p-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
-                            <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
+                            <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                             <span class="text-xs">Volta Almoço</span>
                         </button>
-                        <button onclick="registerPunch('Saída Final')" class="p-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
-                            <i data-lucide="log-out" class="w-6 h-6"></i>
-                            <span class="text-xs">Saída Final</span>
+                        <button onclick="registerPunch('Saída')" class="p-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
+                            <i data-lucide="log-out" class="w-5 h-5"></i>
+                            <span class="text-xs">Saída</span>
+                        </button>
+                        <button onclick="registerPunch('Entrada Plantão')" class="p-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
+                            <i data-lucide="shield-check" class="w-5 h-5"></i>
+                            <span class="text-xs">Entrada Plantão</span>
+                        </button>
+                        <button onclick="registerPunch('Saída Plantão')" class="p-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
+                            <i data-lucide="shield-off" class="w-5 h-5"></i>
+                            <span class="text-xs">Saída Plantão</span>
                         </button>
                     </div>
                 </div>
@@ -291,7 +299,7 @@
                         <i data-lucide="calendar" class="w-5 h-5 text-hovet-blue"></i>
                         <span>Batidas Registradas Hoje</span>
                     </h3>
-                    <div id="todayPunchesList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    <div id="todayPunchesList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                         <p class="text-xs text-slate-400 col-span-full">Nenhuma batida realizada hoje.</p>
                     </div>
                 </div>
@@ -299,11 +307,38 @@
 
             <!-- TAB: ESCALA DE PLANTÕES -->
             <section id="tab-plantoes" class="tab-content hidden space-y-6">
+                <!-- Calendário Mensal de Plantonistas -->
+                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h3 class="text-base font-bold text-hovet-navy flex items-center space-x-2">
+                            <i data-lucide="calendar" class="w-5 h-5 text-hovet-blue"></i>
+                            <span id="calendarTitle">Calendário de Plantões</span>
+                        </h3>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="navigateMonth(-1)" class="p-2 border border-slate-300 rounded-xl hover:bg-slate-100 text-xs font-bold transition">
+                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                            </button>
+                            <span id="calendarMonthLabel" class="text-xs font-extrabold text-hovet-navy uppercase px-2"></span>
+                            <button onclick="navigateMonth(1)" class="p-2 border border-slate-300 rounded-xl hover:bg-slate-100 text-xs font-bold transition">
+                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Grade do Calendário -->
+                    <div class="grid grid-cols-7 gap-1 text-center font-bold text-[10px] text-slate-500 uppercase border-b pb-2">
+                        <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+                    </div>
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 min-h-[260px]">
+                        <!-- Dias gerados via JS -->
+                    </div>
+                </div>
+
                 <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-4">
                     <div class="flex items-center justify-between">
                         <h3 class="text-base font-bold text-hovet-navy flex items-center space-x-2">
                             <i data-lucide="calendar-range" class="w-5 h-5 text-hovet-blue"></i>
-                            <span>Escala Mensal de Plantões</span>
+                            <span>Cadastrar Plantão na Escala</span>
                         </h3>
                     </div>
                     <p class="text-xs text-slate-500">Acompanhe e registre seus plantões agendados e alocações de turno para o HOVET.</p>
@@ -369,7 +404,9 @@
                                     <option value="Entrada">Entrada</option>
                                     <option value="Saída Almoço">Saída Almoço</option>
                                     <option value="Retorno Almoço">Retorno Almoço</option>
-                                    <option value="Saída Final">Saída Final</option>
+                                    <option value="Saída">Saída</option>
+                                    <option value="Entrada Plantão">Entrada Plantão</option>
+                                    <option value="Saída Plantão">Saída Plantão</option>
                                 </select>
                             </div>
                             <div>
@@ -417,14 +454,16 @@
                                     <th class="p-3 border-r border-slate-200">Prestador</th>
                                     <th class="p-3 border-r border-slate-200">Data</th>
                                     <th class="p-3 border-r border-slate-200 text-center bg-emerald-50 text-emerald-900">1. Entrada</th>
-                                    <th class="p-3 border-r border-slate-200 text-center bg-amber-50 text-amber-900">2. Saída Intervalo</th>
-                                    <th class="p-3 border-r border-slate-200 text-center bg-blue-50 text-blue-900">3. Retorno Intervalo</th>
-                                    <th class="p-3 text-center bg-rose-50 text-rose-900">4. Saída Final</th>
+                                    <th class="p-3 border-r border-slate-200 text-center bg-amber-50 text-amber-900">2. Saída Int.</th>
+                                    <th class="p-3 border-r border-slate-200 text-center bg-blue-50 text-blue-900">3. Retorno Int.</th>
+                                    <th class="p-3 border-r border-slate-200 text-center bg-rose-50 text-rose-900">4. Saída</th>
+                                    <th class="p-3 border-r border-slate-200 text-center bg-indigo-50 text-indigo-900">5. Ent. Plantão</th>
+                                    <th class="p-3 text-center bg-purple-50 text-purple-900">6. Saí. Plantão</th>
                                 </tr>
                             </thead>
                             <tbody id="reportsTableBody" class="divide-y divide-slate-200">
                                 <tr>
-                                    <td colspan="6" class="p-4 text-center text-slate-400">Carregando registros...</td>
+                                    <td colspan="8" class="p-4 text-center text-slate-400">Carregando registros...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -471,6 +510,8 @@
     <!-- JAVASCRIPT GLOBAL -->
     <script>
         let currentLocationData = null;
+        let currentCalendarDate = new Date();
+        let loadedShiftsData = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             initClock();
@@ -483,27 +524,14 @@
         // Registro de Service Worker para permitir acesso sem internet (Offline)
         function registerServiceWorker() {
             if ('serviceWorker' in navigator) {
-                const swCode = `
-                    const CACHE_NAME = 'hovet-ponto-v1';
-                    self.addEventListener('install', (e) => {
-                        e.waitUntil(
-                            caches.open(CACHE_NAME).then((cache) => {
-                                return cache.addAll(['./', 'index.html']).catch(() => {});
-                            })
-                        );
-                        self.skipWaiting();
-                    });
-                    self.addEventListener('fetch', (e) => {
-                        e.respondWith(
-                            caches.match(e.request).then((res) => {
-                                return res || fetch(e.request).catch(() => caches.match('./'));
-                            })
-                        );
-                    });
-                `;
-                const blob = new Blob([swCode], { type: 'text/javascript' });
-                const swUrl = URL.createObjectURL(blob);
-                navigator.serviceWorker.register(swUrl).catch(err => console.log('PWA ServiceWorker aviso:', err));
+                const swCode = "const CACHE_NAME = 'hovet-ponto-v1'; self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(['./', 'index.html']).catch(()=>{}))); self.skipWaiting(); }); self.addEventListener('fetch', (e) => { e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request).catch(() => caches.match('./')))); });";
+                try {
+                    const blob = new Blob([swCode], { type: 'text/javascript' });
+                    const swUrl = URL.createObjectURL(blob);
+                    navigator.serviceWorker.register(swUrl).catch(err => console.log('PWA ServiceWorker aviso:', err));
+                } catch(e) {
+                    console.log("Service worker ignorado.");
+                }
             }
         }
 
@@ -545,6 +573,7 @@
             if (btn) btn.classList.add('bg-hovet-light', 'text-hovet-navy', 'font-bold');
 
             if (tabId === 'tab-relatorios') loadReports();
+            if (tabId === 'tab-plantoes') loadShifts();
             if (window.lucide) lucide.createIcons();
         }
 
@@ -737,19 +766,61 @@
             }
         }
 
+        function navigateMonth(offset) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + offset);
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const label = document.getElementById('calendarMonthLabel');
+            if (!grid || !label) return;
+
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+
+            label.textContent = currentCalendarDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+
+            grid.innerHTML = '';
+
+            for (let i = 0; i < firstDay; i++) {
+                grid.innerHTML += `<div class="bg-slate-50/50 p-1 min-h-[50px] rounded-lg"></div>`;
+            }
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayShifts = loadedShiftsData.filter(s => s.date === dateStr);
+
+                let shiftsHtml = '';
+                dayShifts.forEach(s => {
+                    shiftsHtml += `
+                        <div class="bg-blue-50 border border-blue-200 text-hovet-navy p-1 rounded text-[9px] font-extrabold truncate mt-1" title="${s.userName} (${s.sector})">
+                            👤 ${s.userName}
+                        </div>
+                    `;
+                });
+
+                grid.innerHTML += `
+                    <div class="border border-slate-100 bg-white p-1 rounded-xl min-h-[55px] text-left flex flex-col justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 block">${day}</span>
+                        <div class="overflow-y-auto max-h-[45px]">${shiftsHtml}</div>
+                    </div>
+                `;
+            }
+        }
+
         async function loadShifts() {
             const listEl = document.getElementById('shiftsList');
-            if (!listEl || !window.currentSession) return;
+            if (!window.currentSession) return;
 
             try {
                 let shiftsData = [];
                 if (window.fbGetDocs && window.fbDb) {
                     try {
-                        const q = window.fbQuery(
-                            window.fbCollection(window.fbDb, "shifts"),
-                            window.fbWhere("userId", "==", window.currentSession.id || 'uid-local')
-                        );
-                        const querySnapshot = await window.fbGetDocs(q);
+                        const querySnapshot = await window.fbGetDocs(window.fbCollection(window.fbDb, "shifts"));
                         querySnapshot.forEach(docSnap => shiftsData.push(docSnap.data()));
                     } catch(e) {
                         shiftsData = JSON.parse(localStorage.getItem('hovet_shifts') || '[]');
@@ -757,6 +828,11 @@
                 } else {
                     shiftsData = JSON.parse(localStorage.getItem('hovet_shifts') || '[]');
                 }
+
+                loadedShiftsData = shiftsData;
+                renderCalendar();
+
+                if (!listEl) return;
 
                 if (shiftsData.length === 0) {
                     listEl.innerHTML = `<p class="text-xs text-slate-400">Nenhum plantão registrado.</p>`;
@@ -851,39 +927,36 @@
                     punches = allLocal.filter(p => p.date === todayStr);
                 }
 
-                // Ordem fixa padrão dos 4 tipos de batidas
-                const typesOrder = [
-                    { key: 'Entrada', label: 'Entrada', bg: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
-                    { key: 'Saída Almoço', label: 'Saída Almoço', bg: 'bg-amber-50 border-amber-200 text-amber-800' },
-                    { key: 'Retorno Almoço', label: 'Retorno Almoço', bg: 'bg-blue-50 border-blue-200 text-blue-800' },
-                    { key: 'Saída Final', label: 'Saída Final', bg: 'bg-rose-50 border-rose-200 text-rose-800' }
-                ];
+                if (punches.length === 0) {
+                    listEl.innerHTML = `<p class="text-xs text-slate-400 col-span-full text-center">Nenhuma batida realizada hoje.</p>`;
+                    return;
+                }
+
+                punches.sort((a, b) => (a.timestamp || a.time).localeCompare(b.timestamp || b.time));
+
+                const typeStyles = {
+                    'Entrada': 'bg-emerald-50 border-emerald-200 text-emerald-800',
+                    'Saída Almoço': 'bg-amber-50 border-amber-200 text-amber-800',
+                    'Retorno Almoço': 'bg-blue-50 border-blue-200 text-blue-800',
+                    'Saída': 'bg-rose-50 border-rose-200 text-rose-800',
+                    'Entrada Plantão': 'bg-indigo-50 border-indigo-200 text-indigo-800',
+                    'Saída Plantão': 'bg-purple-50 border-purple-200 text-purple-800'
+                };
 
                 listEl.innerHTML = '';
-                typesOrder.forEach((t) => {
-                    const found = punches.find(p => p.type === t.key);
+                punches.forEach((p, index) => {
+                    const style = typeStyles[p.type] || 'bg-slate-50 border-slate-200 text-slate-800';
+                    const locText = p.location && p.location.latitude 
+                        ? `<a href="${p.location.googleMapsUrl}" target="_blank" class="text-[10px] text-hovet-blue underline font-medium block mt-1">Ver GPS</a>`
+                        : `<span class="text-[9px] text-slate-400 block mt-1">Sem GPS</span>`;
 
-                    if (found) {
-                        const locText = found.location && found.location.latitude 
-                            ? `<a href="${found.location.googleMapsUrl}" target="_blank" class="text-[10px] text-hovet-blue underline font-medium block mt-1">Ver GPS</a>`
-                            : `<span class="text-[9px] text-slate-400 block mt-1">Sem GPS</span>`;
-
-                        listEl.innerHTML += `
-                            <div class="p-3 ${t.bg} border rounded-xl text-center shadow-sm">
-                                <span class="text-[10px] font-extrabold uppercase block tracking-wide">${t.label} ${found.isManual ? '(Manual)' : ''}</span>
-                                <span class="text-xl font-black">${found.time}</span>
-                                ${locText}
-                            </div>
-                        `;
-                    } else {
-                        listEl.innerHTML += `
-                            <div class="p-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center opacity-60">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase block">${t.label}</span>
-                                <span class="text-xs font-semibold text-slate-400">--:--:--</span>
-                                <span class="text-[9px] text-slate-300 block mt-1">Pendente</span>
-                            </div>
-                        `;
-                    }
+                    listEl.innerHTML += `
+                        <div class="p-3 ${style} border rounded-xl text-center shadow-sm">
+                            <span class="text-[10px] font-extrabold uppercase block tracking-wide">${p.type} #${index + 1} ${p.isManual ? '(Manual)' : ''}</span>
+                            <span class="text-xl font-black">${p.time}</span>
+                            ${locText}
+                        </div>
+                    `;
                 });
             } catch (err) {
                 console.error("Erro ao carregar batidas:", err);
@@ -909,11 +982,10 @@
                 }
 
                 if (punches.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
                     return;
                 }
 
-                // Preencher o menu suspenso de filtro com prestadores únicos
                 if (filterSelect) {
                     const selectedVal = filterSelect.value || 'ALL';
                     const uniqueUsers = Array.from(new Set(punches.map(p => p.userName || 'Prestador'))).sort();
@@ -924,13 +996,11 @@
                     });
                 }
 
-                // Filtrar caso algum prestador específico tenha sido selecionado
                 const activeFilter = filterSelect ? filterSelect.value : 'ALL';
                 if (activeFilter && activeFilter !== 'ALL') {
                     punches = punches.filter(p => (p.userName || 'Prestador') === activeFilter);
                 }
 
-                // Agrupamento por Pessoa e Data (Chave única: "userName_date")
                 const grouped = {};
                 punches.forEach(p => {
                     const key = `${p.userName || p.userId || 'Prestador'}_${p.date}`;
@@ -941,44 +1011,55 @@
                             punches: {}
                         };
                     }
-                    grouped[key].punches[p.type] = p;
+                    if (!grouped[key].punches[p.type]) {
+                        grouped[key].punches[p.type] = [];
+                    }
+                    grouped[key].punches[p.type].push(p);
                 });
 
                 const sortedKeys = Object.keys(grouped).sort((a, b) => grouped[b].date.localeCompare(grouped[a].date));
 
                 if (sortedKeys.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Nenhum registro encontrado para este filtro.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">Nenhum registro encontrado para este filtro.</td></tr>`;
                     return;
                 }
 
                 tbody.innerHTML = '';
                 sortedKeys.forEach((key) => {
                     const row = grouped[key];
-                    const types = ['Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída Final'];
+                    const types = ['Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Entrada Plantão', 'Saída Plantão'];
 
                     let colsHtml = '';
                     types.forEach(t => {
-                        const p = row.punches[t];
-                        if (p) {
-                            const locText = p.location && p.location.latitude 
-                                ? `<a href="${p.location.googleMapsUrl}" target="_blank" class="text-[10px] text-hovet-blue underline block font-normal">GPS (${p.location.latitude.toFixed(2)}, ${p.location.longitude.toFixed(2)})</a>`
-                                : '';
-                            colsHtml += `
-                                <td class="p-3 text-center border-r border-slate-200">
-                                    <span class="font-bold text-hovet-navy block">${p.time}</span>
+                        const punchList = row.punches[t];
+                        if (punchList && punchList.length > 0) {
+                            punchList.sort((a, b) => (a.timestamp || a.time).localeCompare(b.timestamp || b.time));
+                            
+                            const timesContent = punchList.map(p => {
+                                const locText = p.location && p.location.latitude 
+                                    ? `<a href="${p.location.googleMapsUrl}" target="_blank" class="text-[9px] text-hovet-blue underline block font-normal">GPS (${p.location.latitude.toFixed(2)}, ${p.location.longitude.toFixed(2)})</a>`
+                                    : '';
+                                return `<div class="my-0.5">
+                                    <span class="font-bold text-hovet-navy">${p.time}</span>
                                     ${p.isManual ? '<span class="text-[9px] text-amber-600 font-bold block">(Manual)</span>' : ''}
                                     ${locText}
+                                </div>`;
+                            }).join('<div class="border-t border-slate-100 my-1"></div>');
+
+                            colsHtml += `
+                                <td class="p-3 text-center border-r border-slate-200 align-top">
+                                    ${timesContent}
                                 </td>
                             `;
                         } else {
-                            colsHtml += `<td class="p-3 text-center border-r border-slate-200 text-slate-300">--:--</td>`;
+                            colsHtml += `<td class="p-3 text-center border-r border-slate-200 text-slate-300 align-top">--:--</td>`;
                         }
                     });
 
                     tbody.innerHTML += `
                         <tr class="hover:bg-slate-50 border-b border-slate-200">
-                            <td class="p-3 font-bold text-hovet-navy border-r border-slate-200">${row.userName}</td>
-                            <td class="p-3 border-r border-slate-200 font-medium">${row.date}</td>
+                            <td class="p-3 font-bold text-hovet-navy border-r border-slate-200 align-top">${row.userName}</td>
+                            <td class="p-3 border-r border-slate-200 font-medium align-top">${row.date}</td>
                             ${colsHtml}
                         </tr>
                     `;
