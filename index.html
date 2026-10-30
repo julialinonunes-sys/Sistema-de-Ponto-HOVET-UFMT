@@ -392,14 +392,22 @@
                         <div>
                             <h3 class="text-base font-bold text-hovet-navy flex items-center space-x-2">
                                 <i data-lucide="file-text" class="w-5 h-5 text-hovet-blue"></i>
-                                <span>Relatório Geral de Pontos e Frequência</span>
+                                <span>Relatório Geral e Individual de Pontos</span>
                             </h3>
                             <p class="text-xs text-slate-500">Espelho completo de batidas e geolocalização dos prestadores.</p>
                         </div>
-                        <button onclick="window.print()" class="no-print px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center space-x-2 hover:bg-slate-900 transition">
-                            <i data-lucide="printer" class="w-4 h-4"></i>
-                            <span>Imprimir Espelho</span>
-                        </button>
+                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                            <!-- Filtro Individual de Prestador -->
+                            <div class="no-print flex-1 sm:flex-initial">
+                                <select id="reportUserFilter" onchange="loadReports()" class="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-hovet-navy focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                                    <option value="ALL">Exibir Todos os Prestadores</option>
+                                </select>
+                            </div>
+                            <button onclick="window.print()" class="no-print px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center space-x-2 hover:bg-slate-900 transition">
+                                <i data-lucide="printer" class="w-4 h-4"></i>
+                                <span>Imprimir Espelho</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="overflow-x-auto border border-slate-200 rounded-2xl">
@@ -884,6 +892,7 @@
 
         async function loadReports() {
             const tbody = document.getElementById('reportsTableBody');
+            const filterSelect = document.getElementById('reportUserFilter');
             if (!tbody) return;
 
             try {
@@ -904,6 +913,23 @@
                     return;
                 }
 
+                // Preencher o menu suspenso de filtro com prestadores únicos
+                if (filterSelect) {
+                    const selectedVal = filterSelect.value || 'ALL';
+                    const uniqueUsers = Array.from(new Set(punches.map(p => p.userName || 'Prestador'))).sort();
+                    
+                    filterSelect.innerHTML = `<option value="ALL">Exibir Todos os Prestadores (${uniqueUsers.length})</option>`;
+                    uniqueUsers.forEach(u => {
+                        filterSelect.innerHTML += `<option value="${u}" ${selectedVal === u ? 'selected' : ''}>${u}</option>`;
+                    });
+                }
+
+                // Filtrar caso algum prestador específico tenha sido selecionado
+                const activeFilter = filterSelect ? filterSelect.value : 'ALL';
+                if (activeFilter && activeFilter !== 'ALL') {
+                    punches = punches.filter(p => (p.userName || 'Prestador') === activeFilter);
+                }
+
                 // Agrupamento por Pessoa e Data (Chave única: "userName_date")
                 const grouped = {};
                 punches.forEach(p => {
@@ -919,6 +945,11 @@
                 });
 
                 const sortedKeys = Object.keys(grouped).sort((a, b) => grouped[b].date.localeCompare(grouped[a].date));
+
+                if (sortedKeys.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Nenhum registro encontrado para este filtro.</td></tr>`;
+                    return;
+                }
 
                 tbody.innerHTML = '';
                 sortedKeys.forEach((key) => {
