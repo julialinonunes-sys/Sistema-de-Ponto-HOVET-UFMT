@@ -1,814 +1,760 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="h-full bg-slate-50">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Ponto e Plantões - HOVET UFMT Sinop</title>
-    <!-- Configuração PWA -->
-    <meta name="theme-color" content="#002b5c">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="PontoHOVET">
+    <title>Sistema de Ponto e Escala HOVET UFMT</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         hovet: {
-                            navy: '#002b5c',
-                            blue: '#0056b3',
-                            light: '#f0f4f8',
-                            dark: '#001d3d'
+                            navy: '#0f2942',
+                            blue: '#1e5385',
+                            accent: '#2563eb',
+                            light: '#f1f5f9'
                         }
                     }
                 }
             }
         }
     </script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Firebase SDK Modular (v10) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { 
-            getAuth, 
-            signInWithEmailAndPassword, 
-            signOut, 
-            onAuthStateChanged, 
-            createUserWithEmailAndPassword 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            getDocs, 
-            query, 
-            where, 
-            doc, 
-            setDoc,
-            orderBy 
-        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        // =========================================================================
-        // CHAVES OFICIAIS DO PROJETO PONTO-ELETRONICO-HOVET-UFMT
-        // =========================================================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyCP_2xC3vTilXgrdLAQ_UsGp-mSEE-3oz0",
-            authDomain: "ponto-eletronico-hovet-ufmt.firebaseapp.com",
-            projectId: "ponto-eletronico-hovet-ufmt",
-            storageBucket: "ponto-eletronico-hovet-ufmt.firebasestorage.app",
-            messagingSenderId: "755317322283",
-            appId: "1:755317322283:web:7780136065f30d7cad306e"
-        };
-
-        // Inicialização Global do Firebase
-        try {
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
-
-            window.fbAuth = auth;
-            window.fbDb = db;
-            window.fbSignIn = signInWithEmailAndPassword;
-            window.fbSignOut = signOut;
-            window.fbCreateUser = createUserWithEmailAndPassword;
-            window.fbCollection = collection;
-            window.fbAddDoc = addDoc;
-            window.fbGetDocs = getDocs;
-            window.fbQuery = query;
-            window.fbWhere = where;
-            window.fbDoc = doc;
-            window.fbSetDoc = setDoc;
-
-            // Monitor de Autenticação
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    try {
-                        let userData = { id: user.uid, email: user.email, role: 'colaborador', name: user.email.split('@')[0] };
-                        
-                        try {
-                            const q = query(collection(db, "users"), where("email", "==", user.email));
-                            const querySnapshot = await getDocs(q);
-                            querySnapshot.forEach((docSnap) => {
-                                userData = { id: docSnap.id, ...docSnap.data() };
-                            });
-                        } catch(e) {
-                            console.warn("Consulta Firestore 'users' falhou, usando sessão padrão local:", e);
-                        }
-
-                        if (user.email === 'coordenacao.sinop@ufmt.br' || user.email.includes('admin') || user.email.includes('coord')) {
-                            userData.role = 'coordenacao';
-                        }
-
-                        window.currentSession = userData;
-                        document.getElementById('loginScreen').classList.add('hidden');
-                        document.getElementById('loggedUserName').textContent = userData.name || user.email;
-                        document.getElementById('loggedUserRoleBadge').textContent = userData.role === 'coordenacao' ? 'Coordenação' : 'Prestador';
-
-                        const adminElements = document.querySelectorAll('.admin-only');
-                        if (userData.role === 'coordenacao') {
-                            adminElements.forEach(el => el.classList.remove('hidden'));
-                        } else {
-                            adminElements.forEach(el => el.classList.add('hidden'));
-                        }
-
-                        if (window.switchTab) window.switchTab('tab-ponto');
-                        if (window.loadUserPunches) window.loadUserPunches();
-                        if (window.loadReports) window.loadReports();
-                        if (window.loadShifts) window.loadShifts();
-                    } catch (e) {
-                        console.error("Erro ao carregar dados do usuário:", e);
-                    }
-                } else {
-                    window.currentSession = null;
-                    document.getElementById('loginScreen').classList.remove('hidden');
-                }
-            });
-        } catch (e) {
-            console.warn("Falha ao inicializar o Firebase.", e);
-        }
-    </script>
-
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* Subtil marca d'água de fundo */
+        .watermark-bg {
+            background-image: radial-gradient(#cbd5e1 0.75px, transparent 0.75px);
+            background-size: 24px 24px;
+        }
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
-            body { background: white; color: black; }
+            body { background: white !important; }
+            .shadow-sm, .shadow-md, .shadow-lg { box-shadow: none !important; }
         }
-        .print-only { display: none; }
     </style>
 </head>
-<body class="h-full text-slate-800 font-sans antialiased flex flex-col bg-slate-50 relative overflow-x-hidden">
+<body class="watermark-bg text-slate-800 min-h-screen flex flex-col">
 
-    <!-- ÍCONES/FIGURINHAS DE FUNDO DA TELA (ÁGUA-RÁCULA / WATERMARK BACKGROUND) -->
-    <div class="fixed inset-0 pointer-events-none z-0 opacity-[0.035] flex flex-wrap justify-between items-center p-12 overflow-hidden select-none">
-        <div class="p-8"><i data-lucide="paw-print" class="w-32 h-32 text-hovet-navy"></i></div>
-        <div class="p-8"><i data-lucide="flask-conical" class="w-32 h-32 text-hovet-navy"></i></div>
-        <div class="p-8"><i data-lucide="scan-line" class="w-32 h-32 text-hovet-navy"></i></div>
-        <div class="p-8"><i data-lucide="stethoscope" class="w-32 h-32 text-hovet-navy"></i></div>
-        <div class="p-8"><i data-lucide="microscope" class="w-32 h-32 text-hovet-navy"></i></div>
-        <div class="p-8"><i data-lucide="paw-print" class="w-32 h-32 text-hovet-navy"></i></div>
-        <div class="p-8"><i data-lucide="activity" class="w-32 h-32 text-hovet-navy"></i></div>
-        <div class="p-8"><i data-lucide="flask-round" class="w-32 h-32 text-hovet-navy"></i></div>
-        <div class="p-8"><i data-lucide="cross" class="w-32 h-32 text-hovet-navy"></i></div>
-    </div>
-
-    <!-- TELA DE LOGIN COM EMAIL E SENHA -->
-    <div id="loginScreen" class="fixed inset-0 z-50 bg-hovet-navy flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-blue-200 text-center space-y-6">
-            <div class="inline-flex p-3 bg-blue-50 text-hovet-blue rounded-2xl">
-                <i data-lucide="shield-check" class="w-10 h-10"></i>
-            </div>
-            <div>
-                <h1 class="text-xl font-extrabold text-hovet-navy">Acesso Restrito HOVET</h1>
-                <p class="text-xs text-slate-500 mt-1">Hospital Veterinário - UFMT Campus Sinop</p>
-            </div>
-
-            <form id="loginForm" onsubmit="handleEmailPasswordLogin(event)" class="space-y-4 text-left">
-                <div>
-                    <label class="block text-xs font-bold text-hovet-navy mb-1">E-mail Cadastrado</label>
-                    <input type="email" id="loginEmail" required placeholder="seu.email@ufmt.br" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-hovet-navy mb-1">Senha de Acesso</label>
-                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-hovet-blue focus:outline-none">
-                </div>
-
-                <div id="loginErrorMsg" class="hidden p-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-semibold"></div>
-
-                <button type="submit" id="btnSubmitLogin" class="w-full py-3 bg-hovet-navy hover:bg-hovet-blue text-white font-bold text-sm rounded-xl transition shadow-md flex items-center justify-center space-x-2">
-                    <i data-lucide="log-in" class="w-4 h-4"></i>
-                    <span>Entrar no Sistema</span>
-                </button>
-            </form>
-
-            <div class="pt-4 border-t border-slate-100 text-left">
-                <button onclick="bootstrapCoordUser()" type="button" class="text-xs text-hovet-blue hover:underline font-semibold flex items-center space-x-1">
-                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-                    <span>Criar / Atualizar Conta de Coordenação no Firestore</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Header Institucional UFMT HOVET -->
-    <header class="bg-hovet-navy text-white sticky top-0 z-40 shadow-lg no-print border-b-4 border-blue-500">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div class="flex items-center space-x-3.5">
-                <div class="bg-white p-2 rounded-xl text-hovet-navy flex items-center justify-center font-bold shadow-md">
-                    <i data-lucide="cross" class="w-7 h-7 text-hovet-blue"></i>
+    <!-- Navbar -->
+    <header class="bg-hovet-navy text-white shadow-md border-b border-hovet-blue/30 sticky top-0 z-40 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
+                    <i data-lucide="cross" class="w-6 h-6 text-sky-400"></i>
                 </div>
                 <div>
-                    <h1 class="font-extrabold text-base sm:text-lg leading-tight tracking-wide text-white">
-                        Hospital Veterinário (HOVET)
-                    </h1>
-                    <p class="text-xs text-blue-200 font-medium">
-                        Universidade Federal de Mato Grosso - Campus Sinop
-                    </p>
+                    <h1 class="font-extrabold text-base sm:text-lg tracking-wide leading-tight">HOVET UFMT</h1>
+                    <p class="text-[11px] text-sky-300 font-medium">Controle de Ponto e Escala de Plantões</p>
                 </div>
             </div>
-
-            <div class="flex items-center justify-between md:justify-end space-x-3 border-t md:border-t-0 pt-2 md:pt-0 border-blue-900/50">
-                <div class="flex items-center space-x-2 bg-blue-950/80 px-3 py-1.5 rounded-xl border border-blue-700/60">
-                    <i data-lucide="user" class="w-4 h-4 text-sky-400"></i>
-                    <div class="text-left">
-                        <span id="loggedUserName" class="text-xs font-bold text-white block">Usuário</span>
-                        <span id="loggedUserRoleBadge" class="text-[10px] text-sky-300 block font-semibold">Prestador</span>
-                    </div>
-                </div>
-
-                <button onclick="handleLogout()" title="Sair do Sistema" class="p-2 bg-rose-600/20 hover:bg-rose-600 text-rose-200 hover:text-white rounded-xl border border-rose-500/30 transition">
-                    <i data-lucide="log-out" class="w-4 h-4"></i>
+            
+            <div class="flex items-center space-x-3">
+                <span id="sessionUserInfo" class="text-xs font-semibold bg-white/10 px-3 py-1.5 rounded-xl border border-white/10 hidden sm:inline-block">
+                    👤 Carregando...
+                </span>
+                <button onclick="logoutSession()" class="text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-xl transition flex items-center space-x-1 shadow-sm">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                    <span>Sair</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Layout Principal -->
-    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6 relative z-10">
-
-        <!-- Navegação Lateral Dinâmica -->
-        <nav class="no-print w-full md:w-64 flex-shrink-0 flex md:flex-col gap-2 bg-white p-2.5 rounded-2xl border border-blue-100 shadow-sm h-fit">
-            <button onclick="switchTab('tab-ponto')" id="btn-tab-ponto" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy flex-1 md:flex-initial">
-                <i data-lucide="timer" class="w-5 h-5"></i>
-                <span>Registrar Ponto</span>
-            </button>
-            <button onclick="switchTab('tab-plantoes')" id="btn-tab-plantoes" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy flex-1 md:flex-initial">
-                <i data-lucide="shield-alert" class="w-5 h-5"></i>
-                <span>Escala de Plantões</span>
-            </button>
-            <button onclick="switchTab('tab-ajuste')" id="btn-tab-ajuste" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy flex-1 md:flex-initial">
-                <i data-lucide="edit-3" class="w-5 h-5"></i>
-                <span>Ajuste / Ponto Manual</span>
-            </button>
-
-            <!-- ABAS EXCLUSIVAS DA COORDENAÇÃO -->
-            <div class="admin-only hidden pt-3 border-t border-slate-200 space-y-2">
-                <span class="text-[10px] font-bold text-hovet-navy uppercase px-4 tracking-wider">Acesso Coordenação</span>
-                <button onclick="switchTab('tab-relatorios')" id="btn-tab-relatorios" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy w-full">
-                    <i data-lucide="file-text" class="w-5 h-5 text-hovet-blue"></i>
-                    <span>Relatórios Gerais</span>
-                </button>
-                <button onclick="switchTab('tab-perfis')" id="btn-tab-perfis" class="tab-btn flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-600 hover:bg-hovet-light hover:text-hovet-navy w-full">
-                    <i data-lucide="users" class="w-5 h-5 text-hovet-blue"></i>
-                    <span>Gerenciar Prestadores</span>
-                </button>
+    <!-- Modal / Tela de Login (Exibido se não estiver autenticado) -->
+    <div id="loginOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 border border-slate-100">
+            <div class="text-center space-y-2">
+                <div class="inline-flex p-3 bg-hovet-navy/10 rounded-2xl text-hovet-navy mb-1">
+                    <i data-lucide="lock" class="w-8 h-8 text-hovet-blue"></i>
+                </div>
+                <h2 class="text-xl font-extrabold text-hovet-navy">Acesso ao Sistema HOVET</h2>
+                <p class="text-xs text-slate-500">Informe seu e-mail e senha de acesso para continuar</p>
             </div>
-        </nav>
 
-        <!-- Conteúdo Principal -->
-        <main class="flex-1 min-w-0">
-
-            <!-- TAB: REGISTRAR PONTO -->
-            <section id="tab-ponto" class="tab-content space-y-6">
-                <!-- RELÓGIO + STATUS DE GPS DESTAQUE (LARGURA TOTAL) -->
-                <div class="bg-white rounded-3xl p-6 sm:p-8 border border-blue-100 shadow-sm text-center flex flex-col justify-center items-center">
-                    <div class="inline-flex items-center space-x-2 px-3 py-1 bg-blue-50 text-hovet-blue rounded-full text-xs font-semibold mb-2">
-                        <i data-lucide="clock" class="w-4 h-4"></i>
-                        <span id="liveDate">Horário Oficial do Sistema</span>
-                    </div>
-                    <div id="liveClock" class="text-5xl sm:text-7xl font-black text-hovet-navy tracking-tight my-2">
-                        00:00:00
-                    </div>
-                    <div id="geoStatus" class="inline-flex items-center space-x-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-[11px] font-medium my-1">
-                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-600"></i>
-                        <span id="geoStatusText">Capturando localização GPS...</span>
-                    </div>
+            <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">E-mail de Acesso</label>
+                    <input type="email" id="loginEmail" required placeholder="seu.email@ufmt.br" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
                 </div>
 
-                <!-- GRADE DE BOTÕES DE BATIDA COM CORES E ÍCONES REORDENADOS -->
-                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-3">
-                    <h3 class="text-sm font-bold text-hovet-navy flex items-center space-x-2">
-                        <i data-lucide="touchpad" class="w-4 h-4 text-hovet-blue"></i>
-                        <span>Selecione a Ação para Registrar Frequência</span>
-                    </h3>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                        <button onclick="promptPunchJustification('Entrada')" class="p-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
-                            <i data-lucide="log-in" class="w-5 h-5"></i>
-                            <span class="text-xs">Entrada</span>
-                        </button>
-                        <button onclick="promptPunchJustification('Saída Almoço')" class="p-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
-                            <i data-lucide="utensils" class="w-5 h-5"></i>
-                            <span class="text-xs">Saída Almoço</span>
-                        </button>
-                        <button onclick="promptPunchJustification('Retorno Almoço')" class="p-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
-                            <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
-                            <span class="text-xs">Volta Almoço</span>
-                        </button>
-                        <button onclick="promptPunchJustification('Saída')" class="p-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
-                            <i data-lucide="log-out" class="w-5 h-5"></i>
-                            <span class="text-xs">Saída</span>
-                        </button>
-                        <button onclick="promptPunchJustification('Entrada Plantão')" class="p-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
-                            <i data-lucide="shield-check" class="w-5 h-5"></i>
-                            <span class="text-xs">Entrada Plantão</span>
-                        </button>
-                        <button onclick="promptPunchJustification('Saída Plantão')" class="p-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
-                            <i data-lucide="shield-off" class="w-5 h-5"></i>
-                            <span class="text-xs">Saída Plantão</span>
-                        </button>
-                    </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Senha</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
                 </div>
 
-                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm">
-                    <h3 class="text-base font-bold text-hovet-navy mb-4 flex items-center space-x-2">
-                        <i data-lucide="calendar" class="w-5 h-5 text-hovet-blue"></i>
-                        <span>Batidas Registradas Hoje</span>
-                    </h3>
-                    <div id="todayPunchesList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                        <p class="text-xs text-slate-400 col-span-full">Nenhuma batida realizada hoje.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB: ESCALA DE PLANTÕES -->
-            <section id="tab-plantoes" class="tab-content hidden space-y-6">
-                <!-- Calendário Mensal de Plantonistas -->
-                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-4">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <h3 class="text-base font-bold text-hovet-navy flex items-center space-x-2">
-                            <i data-lucide="calendar" class="w-5 h-5 text-hovet-blue"></i>
-                            <span id="calendarTitle">Calendário de Plantões</span>
-                        </h3>
-                        <div class="flex items-center space-x-2">
-                            <button onclick="navigateMonth(-1)" class="p-2 border border-slate-300 rounded-xl hover:bg-slate-100 text-xs font-bold transition">
-                                <i data-lucide="chevron-left" class="w-4 h-4"></i>
-                            </button>
-                            <span id="calendarMonthLabel" class="text-xs font-extrabold text-hovet-navy uppercase px-2"></span>
-                            <button onclick="navigateMonth(1)" class="p-2 border border-slate-300 rounded-xl hover:bg-slate-100 text-xs font-bold transition">
-                                <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Grade do Calendário -->
-                    <div class="grid grid-cols-7 gap-1 text-center font-bold text-[10px] text-slate-500 uppercase border-b pb-2">
-                        <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
-                    </div>
-                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 min-h-[260px]">
-                        <!-- Dias gerados via JS -->
-                    </div>
+                <div id="loginErrorMessage" class="hidden text-xs text-rose-600 bg-rose-50 p-3 rounded-xl border border-rose-200 font-semibold">
+                    E-mail ou senha incorretos!
                 </div>
 
-                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-base font-bold text-hovet-navy flex items-center space-x-2">
-                            <i data-lucide="calendar-range" class="w-5 h-5 text-hovet-blue"></i>
-                            <span>Cadastrar Plantão na Escala</span>
-                        </h3>
-                    </div>
-                    <p class="text-xs text-slate-500">Acompanhe e registre seus plantões agendados e alocações de turno para o HOVET.</p>
-                    
-                    <form onsubmit="handleShiftRegister(event)" class="space-y-4 pt-2 border-t border-slate-100">
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">Data do Plantão</label>
-                                <input type="date" id="shiftDate" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">Turno</label>
-                                <select id="shiftTurn" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                                    <option value="Diurno (07:00 - 19:00)">Diurno (07:00 - 19:00)</option>
-                                    <option value="Noturno (19:00 - 07:00)">Noturno (19:00 - 07:00)</option>
-                                    <option value="24 Horas">24 Horas</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-600 mb-1">Setor / Especialidade</label>
-                                <input type="text" id="shiftSector" placeholder="Ex: Clínica Médica / Anestesia" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                            </div>
-                        </div>
-                        <button type="submit" class="px-6 py-2.5 bg-hovet-navy text-white text-sm font-bold rounded-xl hover:bg-hovet-blue transition shadow">
-                            Registrar Escala de Plantão
-                        </button>
-                    </form>
-                </div>
-
-                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm">
-                    <h4 class="text-sm font-bold text-hovet-navy mb-3">Plantões Agendados</h4>
-                    <div id="shiftsList" class="space-y-2">
-                        <p class="text-xs text-slate-400">Nenhum plantão registrado.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB: AJUSTE / PONTO MANUAL -->
-            <section id="tab-ajuste" class="tab-content hidden space-y-6">
-                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-4">
-                    <h3 class="text-base font-bold text-hovet-navy flex items-center space-x-2">
-                        <i data-lucide="edit-3" class="w-5 h-5 text-hovet-blue"></i>
-                        <span>Solicitar Ajuste / Registro Manual de Ponto</span>
-                    </h3>
-                    <p class="text-xs text-slate-500">Utilize este formulário em caso de esquecimento, falta de sinal de GPS ou problemas técnicos no registro regular.</p>
-                    
-                    <form onsubmit="handleManualPunch(event)" class="space-y-4 max-w-xl pt-2 border-t border-slate-100">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-600 mb-1">Data da Ocorrência</label>
-                                <input type="date" id="manualDate" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-600 mb-1">Horário Exato</label>
-                                <input type="time" id="manualTime" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-600 mb-1">Tipo de Registro</label>
-                                <select id="manualType" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold">
-                                    <option value="Entrada">Entrada</option>
-                                    <option value="Saída Almoço">Saída Almoço</option>
-                                    <option value="Retorno Almoço">Retorno Almoço</option>
-                                    <option value="Saída">Saída</option>
-                                    <option value="Entrada Plantão">Entrada Plantão</option>
-                                    <option value="Saída Plantão">Saída Plantão</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-600 mb-1">Motivo / Justificativa</label>
-                                <input type="text" id="manualReason" required placeholder="Ex: Problema de conexão no celular" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                            </div>
-                        </div>
-
-                        <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-hovet-navy hover:bg-hovet-blue text-white text-sm font-bold rounded-xl transition shadow">
-                            Enviar Registro Manual
-                        </button>
-                    </form>
-                </div>
-            </section>
-
-            <!-- TAB: RELATÓRIOS GERAIS (COORDENAÇÃO) -->
-            <section id="tab-relatorios" class="tab-content hidden space-y-6">
-                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-4">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div>
-                            <h3 class="text-base font-bold text-hovet-navy flex items-center space-x-2">
-                                <i data-lucide="file-text" class="w-5 h-5 text-hovet-blue"></i>
-                                <span>Relatório Geral e Individual de Pontos</span>
-                            </h3>
-                            <p class="text-xs text-slate-500">Espelho completo de batidas e geolocalização dos prestadores por mês.</p>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                            <!-- Filtro de Mês/Ano -->
-                            <div class="no-print">
-                                <select id="reportMonthFilter" onchange="loadReports()" class="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-hovet-navy focus:ring-2 focus:ring-hovet-blue focus:outline-none">
-                                    <!-- Populado via JS -->
-                                </select>
-                            </div>
-                            <!-- Filtro Individual de Prestador -->
-                            <div class="no-print flex-1 sm:flex-initial">
-                                <select id="reportUserFilter" onchange="loadReports()" class="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-hovet-navy focus:ring-2 focus:ring-hovet-blue focus:outline-none">
-                                    <option value="ALL">Exibir Todos os Prestadores</option>
-                                </select>
-                            </div>
-                            <button onclick="window.print()" class="no-print px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center space-x-2 hover:bg-slate-900 transition">
-                                <i data-lucide="printer" class="w-4 h-4"></i>
-                                <span>Imprimir Espelho</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div id="reportsContainer" class="space-y-8">
-                        <div class="overflow-x-auto border border-slate-200 rounded-2xl">
-                            <table class="w-full text-left text-xs text-slate-700 border-collapse">
-                                <thead class="bg-slate-100 text-hovet-navy font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                                    <tr>
-                                        <th class="p-3 border-r border-slate-200">Prestador</th>
-                                        <th class="p-3 border-r border-slate-200">Data</th>
-                                        <th class="p-3 border-r border-slate-200 text-center bg-emerald-50 text-emerald-900">1. Entrada</th>
-                                        <th class="p-3 border-r border-slate-200 text-center bg-amber-50 text-amber-900">2. Saída Int.</th>
-                                        <th class="p-3 border-r border-slate-200 text-center bg-blue-50 text-blue-900">3. Retorno Int.</th>
-                                        <th class="p-3 border-r border-slate-200 text-center bg-rose-50 text-rose-900">4. Saída</th>
-                                        <th class="p-3 border-r border-slate-200 text-center bg-indigo-50 text-indigo-900">5. Ent. Plantão</th>
-                                        <th class="p-3 text-center bg-purple-50 text-purple-900">6. Saí. Plantão</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="reportsTableBody" class="divide-y divide-slate-200">
-                                    <tr>
-                                        <td colspan="8" class="p-4 text-center text-slate-400">Carregando registros...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB: GERENCIAR PRESTADORES (COORDENAÇÃO) -->
-            <section id="tab-perfis" class="tab-content hidden space-y-6">
-                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-4">
-                    <h3 class="text-base font-bold text-hovet-navy flex items-center space-x-2">
-                        <i data-lucide="user-plus" class="w-5 h-5 text-hovet-blue"></i>
-                        <span>Cadastrar Novo Prestador no Firebase</span>
-                    </h3>
-                    <p class="text-xs text-slate-500">Cadastre médicos veterinários, residentes e técnicos com permissões específicas.</p>
-
-                    <form onsubmit="handleCreateUser(event)" class="space-y-4 max-w-xl pt-2 border-t border-slate-100">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-1">Nome Completo</label>
-                            <input type="text" id="newUserName" required placeholder="Ex: Dr. João Silva" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-600 mb-1">E-mail Corporativo</label>
-                                <input type="email" id="newUserEmail" required placeholder="prestador@ufmt.br" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-600 mb-1">Senha Inicial</label>
-                                <input type="password" id="newUserPassword" required minlength="6" placeholder="••••••••" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-1">Função / Perfil</label>
-                            <select id="newUserRole" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                                <option value="colaborador">Prestador de Serviço / Residente</option>
-                                <option value="coordenacao">Coordenação / Admin</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="px-6 py-2.5 bg-hovet-navy hover:bg-hovet-blue text-white text-sm font-bold rounded-xl transition shadow">
-                            Cadastrar Usuário
-                        </button>
-                    </form>
-                </div>
-            </section>
-        </main>
+                <button type="submit" class="w-full py-3 bg-hovet-navy hover:bg-hovet-blue text-white rounded-xl text-xs font-bold transition shadow-md flex items-center justify-center space-x-2">
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    <span>Entrar no Sistema</span>
+                </button>
+            </form>
+        </div>
     </div>
 
-    <!-- MODAL DE JUSTIFICATIVA DE PONTO -->
-    <div id="justificationModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-blue-100 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div class="flex items-center space-x-2">
-                    <div class="p-2 bg-blue-50 text-hovet-blue rounded-xl">
-                        <i data-lucide="message-square" class="w-5 h-5"></i>
+    <!-- Main Navigation Tabs -->
+    <div class="bg-white border-b border-slate-200 shadow-xs no-print sticky top-[57px] z-30">
+        <div class="max-w-7xl mx-auto px-4 flex overflow-x-auto space-x-2 py-2">
+            <button onclick="switchTab('registro')" id="tabBtn-registro" class="px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition flex items-center space-x-2 whitespace-nowrap bg-hovet-navy text-white shadow-xs">
+                <i data-lucide="clock" class="w-4 h-4"></i>
+                <span>Registrar Ponto</span>
+            </button>
+            <button onclick="switchTab('plantoes')" id="tabBtn-plantoes" class="px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition flex items-center space-x-2 whitespace-nowrap text-slate-600 hover:bg-slate-100">
+                <i data-lucide="calendar" class="w-4 h-4"></i>
+                <span>Escala de Plantões</span>
+            </button>
+            <button onclick="switchTab('ajuste')" id="tabBtn-ajuste" class="px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition flex items-center space-x-2 whitespace-nowrap text-slate-600 hover:bg-slate-100">
+                <i data-lucide="file-pen" class="w-4 h-4"></i>
+                <span>Ajuste Manual</span>
+            </button>
+            <button onclick="switchTab('relatorios')" id="tabBtn-relatorios" class="px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition flex items-center space-x-2 whitespace-nowrap text-slate-600 hover:bg-slate-100">
+                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                <span>Relatórios Gerais</span>
+            </button>
+            <button onclick="switchTab('perfis')" id="tabBtn-perfis" class="px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition flex items-center space-x-2 whitespace-nowrap text-slate-600 hover:bg-slate-100 coord-only">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                <span>Gerenciar Prestadores</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+        <!-- TAB 1: REGISTRO DE PONTO -->
+        <section id="tab-registro" class="tab-content space-y-6">
+            <!-- Relógio Digital e Geocalização -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+                <div class="space-y-1">
+                    <span class="text-xs font-bold uppercase tracking-wider text-hovet-blue bg-blue-50 px-3 py-1 rounded-full border border-blue-100">Data & Hora Atual</span>
+                    <div id="liveClock" class="text-3xl sm:text-4xl font-extrabold text-hovet-navy tracking-tight pt-1">00:00:00</div>
+                    <div id="liveDate" class="text-xs font-semibold text-slate-500">Carregando data...</div>
+                </div>
+
+                <div class="flex flex-col items-center md:items-end space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-100 w-full md:w-auto">
+                    <div class="flex items-center space-x-2">
+                        <span id="gpsStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span id="gpsStatusText" class="text-xs font-bold text-slate-700">Obtendo localização GPS...</span>
                     </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-hovet-navy" id="modalPunchTypeTitle">Confirmar Registro de Ponto</h3>
-                        <p class="text-[11px] text-slate-500">Adicione uma observação ou justificativa se necessário.</p>
+                    <div id="gpsCoords" class="text-[11px] text-slate-500 font-mono">Aguardando permissão...</div>
+                    <button onclick="requestGeolocation()" class="text-[11px] font-bold text-hovet-blue hover:underline flex items-center space-x-1">
+                        <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                        <span>Atualizar Localização</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Botões Rápidos de Registro -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <h3 class="text-sm font-bold text-hovet-navy flex items-center space-x-2">
+                    <i data-lucide="fingerprint" class="w-4 h-4 text-hovet-blue"></i>
+                    <span>Registrar Ponto do Dia</span>
+                </h3>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <button onclick="openPunchConfirmation('Entrada')" class="p-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-md transition flex flex-col items-center justify-center space-y-2 group">
+                        <i data-lucide="log-in" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                        <span>Entrada</span>
+                    </button>
+
+                    <button onclick="openPunchConfirmation('Saída Almoço')" class="p-4 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-md transition flex flex-col items-center justify-center space-y-2 group">
+                        <i data-lucide="utensils" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                        <span>Saída Almoço</span>
+                    </button>
+
+                    <button onclick="openPunchConfirmation('Retorno Almoço')" class="p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-md transition flex flex-col items-center justify-center space-y-2 group">
+                        <i data-lucide="rotate-ccw" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                        <span>Retorno Almoço</span>
+                    </button>
+
+                    <button onclick="openPunchConfirmation('Saída')" class="p-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-md transition flex flex-col items-center justify-center space-y-2 group">
+                        <i data-lucide="log-out" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                        <span>Saída</span>
+                    </button>
+
+                    <button onclick="openPunchConfirmation('Entrada Plantão')" class="p-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-md transition flex flex-col items-center justify-center space-y-2 group">
+                        <i data-lucide="shield-check" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                        <span>Entrada Plantão</span>
+                    </button>
+
+                    <button onclick="openPunchConfirmation('Saída Plantão')" class="p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-bold text-xs sm:text-sm shadow-md transition flex flex-col items-center justify-center space-y-2 group">
+                        <i data-lucide="shield-alert" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
+                        <span>Saída Plantão</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Registro Diário do Prestador -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-hovet-navy flex items-center space-x-2">
+                        <i data-lucide="list-checks" class="w-4 h-4 text-hovet-blue"></i>
+                        <span>Batidas Registradas Hoje</span>
+                    </h3>
+                    <span id="todayRecordsCount" class="text-xs font-extrabold bg-blue-50 text-hovet-blue px-2.5 py-1 rounded-xl">0 Batidas</span>
+                </div>
+
+                <div id="todayPunchesList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <!-- Preenchido dinamicamente via JS -->
+                    <p class="text-xs text-slate-400 italic col-span-full">Nenhuma batida efetuada hoje.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: ESCALA DE PLANTÕES -->
+        <section id="tab-plantoes" class="tab-content hidden space-y-6">
+            <!-- Formulário de Agendamento -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-hovet-navy flex items-center space-x-2">
+                        <i data-lucide="calendar-plus" class="w-4 h-4 text-hovet-blue"></i>
+                        <span id="shiftFormTitle">Cadastrar Plantão na Escala</span>
+                    </h3>
+                    <button id="btnCancelEditShift" onclick="cancelShiftEdit()" type="button" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 px-3 py-1 rounded-xl hover:bg-rose-100 transition">
+                        Cancelar Edição
+                    </button>
+                </div>
+
+                <form onsubmit="handleShiftRegister(event)" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Data do Plantão</label>
+                            <input type="date" id="shiftDate" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Turno / Horário</label>
+                            <select id="shiftTurn" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
+                                <option value="07h - 13h">07h - 13h</option>
+                                <option value="13h - 19h">13h - 19h</option>
+                                <option value="Diurno (07:00 - 19:00)">Diurno (07:00 - 19:00)</option>
+                                <option value="Noturno (19:00 - 07:00)">Noturno (19:00 - 07:00)</option>
+                                <option value="Integral / 24h">Integral / 24h</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Setor / Tipo de Plantão</label>
+                            <select id="shiftSector" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-hovet-navy focus:ring-2 focus:ring-hovet-blue outline-none">
+                                <option value="Triagem">Triagem</option>
+                                <option value="Internação">Internação</option>
+                                <option value="Plantão Diurno">Plantão Diurno</option>
+                                <option value="Plantão Noturno">Plantão Noturno</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnSubmitShift" class="px-6 py-2.5 bg-hovet-navy text-white text-xs font-bold rounded-xl hover:bg-hovet-blue transition shadow-md">
+                        Registrar Escala de Plantão
+                    </button>
+                </form>
+            </div>
+
+            <!-- Calendário Mensal e Legenda -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <!-- Legenda de Setores -->
+                <div class="flex flex-wrap items-center gap-3 pb-3 border-b border-slate-100 text-xs">
+                    <span class="font-bold text-slate-500">Legenda de Setores:</span>
+                    <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg font-bold">🟢 Triagem</span>
+                    <span class="px-2.5 py-1 bg-sky-100 text-sky-800 border border-sky-300 rounded-lg font-bold">🔵 Internação</span>
+                    <span class="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-lg font-bold">🟡 Plantão Diurno</span>
+                    <span class="px-2.5 py-1 bg-indigo-100 text-indigo-800 border border-indigo-300 rounded-lg font-bold">🟣 Plantão Noturno</span>
+                </div>
+
+                <!-- Navegação do Calendário -->
+                <div class="flex items-center justify-between">
+                    <button onclick="navigateMonth(-1)" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 transition">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </button>
+                    <h3 id="calendarMonthTitle" class="text-base font-extrabold text-hovet-navy capitalize">
+                        Mês Ano
+                    </h3>
+                    <button onclick="navigateMonth(1)" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-700 transition">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Grade do Calendário Mensal -->
+                <div class="overflow-x-auto">
+                    <div class="min-w-[700px]">
+                        <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-500 bg-slate-50 py-2 rounded-xl mb-1">
+                            <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+                        </div>
+                        <div id="calendarGrid" class="grid grid-cols-7 gap-1">
+                            <!-- Preenchido via JS -->
+                        </div>
                     </div>
                 </div>
-                <button onclick="closeJustificationModal()" class="text-slate-400 hover:text-slate-600 p-1">
+            </div>
+
+            <!-- Lista de Plantões Agendados -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-3">
+                <h4 class="text-sm font-bold text-hovet-navy">Plantões Agendados</h4>
+                <div id="shiftsList" class="space-y-2">
+                    <p class="text-xs text-slate-400">Nenhum plantão registrado.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: AJUSTE MANUAL / JUSTIFICATIVA -->
+        <section id="tab-ajuste" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <div class="space-y-1">
+                    <h3 class="text-sm font-bold text-hovet-navy flex items-center space-x-2">
+                        <i data-lucide="file-pen" class="w-4 h-4 text-hovet-blue"></i>
+                        <span>Lançamento ou Ajuste Retroativo de Ponto</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Permite registrar pontos esquecidos ou ajustar horários incorretos fornecendo a justificativa do ajuste.</p>
+                </div>
+
+                <form onsubmit="handleManualPunch(event)" class="space-y-4 pt-2 border-t border-slate-100">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Data do Ponto</label>
+                            <input type="date" id="manualDate" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Hora Exata</label>
+                            <input type="time" id="manualTime" required step="1" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Tipo de Batida</label>
+                            <select id="manualType" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
+                                <option value="Entrada">Entrada</option>
+                                <option value="Saída Almoço">Saída Almoço</option>
+                                <option value="Retorno Almoço">Retorno Almoço</option>
+                                <option value="Saída">Saída</option>
+                                <option value="Entrada Plantão">Entrada Plantão</option>
+                                <option value="Saída Plantão">Saída Plantão</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Motivo / Justificativa do Ajuste</label>
+                        <textarea id="manualJustification" rows="2" placeholder="Descreva detalhadamente o motivo do ajuste manual (obrigatório para auditoria)..." required class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-hovet-blue outline-none"></textarea>
+                    </div>
+
+                    <button type="submit" class="px-6 py-2.5 bg-hovet-navy text-white text-xs font-bold rounded-xl hover:bg-hovet-blue transition shadow-md">
+                        Salvar Ajuste Manual
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- TAB 4: RELATÓRIOS GERAIS & ESPELHO MENSAL -->
+        <section id="tab-relatorios" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4 no-print">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-hovet-navy flex items-center space-x-2">
+                            <i data-lucide="bar-chart-3" class="w-4 h-4 text-hovet-blue"></i>
+                            <span>Relatórios de Frequência e Espelho de Ponto</span>
+                        </h3>
+                        <p class="text-xs text-slate-500">Selecione o filtro mensal para gerar a folha de espelho de ponto por mês.</p>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button onclick="window.print()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                            <i data-lucide="printer" class="w-4 h-4"></i>
+                            <span>Imprimir / Salvar PDF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Filtrar por Mês/Ano</label>
+                        <select id="reportMonthFilter" onchange="generateReport()" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none font-bold text-hovet-navy">
+                            <!-- Preenchido dinamicamente via JS -->
+                        </select>
+                    </div>
+                    <div class="coord-only">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Filtrar por Prestador</label>
+                        <select id="reportUserFilter" onchange="generateReport()" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
+                            <option value="ALL">Todos os Prestadores</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela Impressa do Relatório -->
+            <div id="reportPrintArea" class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
+                <!-- Cabeçalho Institucional -->
+                <div class="border-b-2 border-hovet-navy pb-4 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-base font-black text-hovet-navy">HOVET - HOSPITAL VETERINÁRIO UFMT</h2>
+                        <p class="text-xs font-semibold text-slate-600">Universidade Federal de Mato Grosso - Campus Sinop</p>
+                        <p class="text-xs text-slate-500">Relatório Mensal de Frequência e Ajustes de Ponto</p>
+                    </div>
+                    <div class="text-right text-xs text-slate-500">
+                        <p id="reportHeaderPeriod" class="font-bold text-hovet-navy">Mês Selecionado</p>
+                        <p id="reportHeaderGeneratedAt">Emissão: 00/00/0000</p>
+                    </div>
+                </div>
+
+                <!-- Tabela Principal -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-300 text-slate-700 font-extrabold">
+                                <th class="p-2 border border-slate-200">Data</th>
+                                <th class="p-2 border border-slate-200">Prestador</th>
+                                <th class="p-2 border border-slate-200">Entrada</th>
+                                <th class="p-2 border border-slate-200">Saída Almoço</th>
+                                <th class="p-2 border border-slate-200">Retorno Almoço</th>
+                                <th class="p-2 border border-slate-200">Saída</th>
+                                <th class="p-2 border border-slate-200">Entrada Plantão</th>
+                                <th class="p-2 border border-slate-200">Saída Plantão</th>
+                                <th class="p-2 border border-slate-200">Observações / Justificativas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody">
+                            <tr>
+                                <td colspan="9" class="p-4 text-center text-slate-400">Nenhum registro encontrado para o filtro selecionado.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Área de Assinatura para Impressão -->
+                <div class="pt-12 grid grid-cols-2 gap-8 text-center text-xs text-slate-600 hidden print-only">
+                    <div class="border-t border-slate-400 pt-2">
+                        <p class="font-bold">Assinatura do Prestador de Serviço</p>
+                    </div>
+                    <div class="border-t border-slate-400 pt-2">
+                        <p class="font-bold">Visto da Coordenação HOVET</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: GERENCIAR PRESTADORES (EXCLUSIVO COORDENAÇÃO) -->
+        <section id="tab-perfis" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-4">
+                <h3 class="text-sm font-bold text-hovet-navy flex items-center space-x-2">
+                    <i data-lucide="user-plus" class="w-4 h-4 text-hovet-blue"></i>
+                    <span>Cadastrar Novo Colaborador / Prestador</span>
+                </h3>
+
+                <form onsubmit="handleSaveUser(event)" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Nome Completo</label>
+                            <input type="text" id="userNameInput" required placeholder="Nome do Colaborador" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">E-mail de Acesso</label>
+                            <input type="email" id="userEmailInput" required placeholder="colaborador@ufmt.br" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Senha de Acesso</label>
+                            <input type="password" id="userPasswordInput" required placeholder="Senha inicial" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Perfil de Acesso</label>
+                            <select id="userRoleInput" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-hovet-blue outline-none">
+                                <option value="PRESTADOR">Prestador / Colaborador</option>
+                                <option value="COORDENADOR">Coordenação HOVET</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="px-6 py-2.5 bg-hovet-navy text-white text-xs font-bold rounded-xl hover:bg-hovet-blue transition shadow-md">
+                        Cadastrar Colaborador
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-3">
+                <h4 class="text-sm font-bold text-hovet-navy">Colaboradores Cadastrados</h4>
+                <div id="usersList" class="space-y-2">
+                    <p class="text-xs text-slate-400">Carregando usuários...</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal de Confirmação & Justificativa para Registro de Ponto -->
+    <div id="punchModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-100 animate-in fade-in zoom-in duration-150">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                <h3 class="font-extrabold text-base text-hovet-navy flex items-center space-x-2">
+                    <i data-lucide="clock-check" class="w-5 h-5 text-hovet-blue"></i>
+                    <span>Confirmar Marcação</span>
+                </h3>
+                <button onclick="closePunchModal()" class="text-slate-400 hover:text-slate-600 transition">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-hovet-navy mb-1.5">Justificativa / Observação (Opcional):</label>
-                <textarea id="punchJustificationInput" rows="3" placeholder="Ex: Atraso devido ao trânsito / Atendimento de emergência" class="w-full border border-slate-300 rounded-xl p-3 text-xs focus:ring-2 focus:ring-hovet-blue focus:outline-none resize-none"></textarea>
+            <div class="space-y-2">
+                <div class="p-3 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-600">Tipo de Ponto:</span>
+                    <span id="modalPunchTypeLabel" class="text-sm font-extrabold text-hovet-blue">--</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">
+                        Justificativa / Observação (Opcional):
+                    </label>
+                    <textarea id="modalPunchJustification" rows="3" placeholder="Em caso de atraso ou observação referente à batida, descreva aqui (opcional)..." class="w-full border border-slate-300 rounded-xl p-3 text-xs focus:ring-2 focus:ring-hovet-blue outline-none"></textarea>
+                </div>
             </div>
 
-            <div class="flex space-x-3 pt-2">
-                <button onclick="closeJustificationModal()" class="w-1/2 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-xl transition">
+            <div class="flex items-center space-x-3 pt-2">
+                <button onclick="closePunchModal()" class="w-1/2 py-2.5 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50 transition">
                     Cancelar
                 </button>
-                <button onclick="confirmPunchRegistration()" class="w-1/2 py-2.5 bg-hovet-navy hover:bg-hovet-blue text-white font-bold text-xs rounded-xl transition shadow">
-                    Confirmar Ponto
+                <button onclick="submitPunchFromModal()" class="w-1/2 py-2.5 bg-hovet-navy text-white text-xs font-bold rounded-xl hover:bg-hovet-blue transition shadow-md">
+                    Confirmar Registro
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT GLOBAL -->
+    <!-- Scripts e Lógica da Aplicação -->
     <script>
+        // Variáveis de Estado Global
         let currentLocationData = null;
         let currentCalendarDate = new Date();
         let loadedShiftsData = [];
         let pendingPunchType = null;
+        let editingShiftId = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             initClock();
-            requestLocation();
+            requestGeolocation();
+            bootstrapCoordUser();
+            initSessionUser();
+            loadShifts();
+            loadPunchesToday();
+            populateMonthFilter();
+            generateReport();
             if (window.lucide) lucide.createIcons();
-            switchTab('tab-ponto');
-            registerServiceWorker();
         });
 
-        // Registro de Service Worker para permitir acesso sem internet (Offline)
-        function registerServiceWorker() {
-            if ('serviceWorker' in navigator) {
-                const swCode = "const CACHE_NAME = 'hovet-ponto-v1'; self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(['./', 'index.html']).catch(()=>{}))); self.skipWaiting(); }); self.addEventListener('fetch', (e) => { e.respondWith(caches.match(e.request).then((res) => res || fetch(e.request).catch(() => caches.match('./')))); });";
-                try {
-                    const blob = new Blob([swCode], { type: 'text/javascript' });
-                    const swUrl = URL.createObjectURL(blob);
-                    navigator.serviceWorker.register(swUrl).catch(err => console.log('PWA ServiceWorker aviso:', err));
-                } catch(e) {
-                    console.log("Service worker ignorado.");
-                }
+        function initClock() {
+            function update() {
+                const now = new Date();
+                const clockEl = document.getElementById('liveClock');
+                const dateEl = document.getElementById('liveDate');
+                if (clockEl) clockEl.textContent = now.toLocaleTimeString('pt-BR');
+                if (dateEl) dateEl.textContent = now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             }
+            update();
+            setInterval(update, 1000);
         }
 
-        function requestLocation() {
-            const statusEl = document.getElementById('geoStatusText');
+        function requestGeolocation() {
+            const statusDot = document.getElementById('gpsStatusDot');
+            const statusText = document.getElementById('gpsStatusText');
+            const coordsText = document.getElementById('gpsCoords');
+
             if (!navigator.geolocation) {
-                if (statusEl) statusEl.textContent = "Geolocalização não suportada pelo navegador.";
+                if (statusText) statusText.textContent = 'GPS Não suportado';
                 return;
             }
 
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     currentLocationData = {
-                        latitude: pos.coords.latitude,
-                        longitude: pos.coords.longitude,
-                        accuracy: pos.coords.accuracy,
-                        googleMapsUrl: `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude
                     };
-                    if (statusEl) {
-                        statusEl.textContent = `GPS Ativo (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`;
-                    }
+                    if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+                    if (statusText) statusText.textContent = 'GPS Localizado (Precisão Alta)';
+                    if (coordsText) coordsText.textContent = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
                 },
                 (err) => {
-                    console.warn("Erro ao obter GPS:", err.message);
-                    if (statusEl) statusEl.textContent = "Permissão de GPS pendente ou desativada.";
+                    console.warn("GPS Indisponível:", err);
+                    if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+                    if (statusText) statusText.textContent = 'GPS Sem permissão/Desativado';
+                    if (coordsText) coordsText.textContent = 'Sem coordenadas GPS';
                 },
                 { enableHighAccuracy: true, timeout: 10000 }
             );
         }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('bg-hovet-light', 'text-hovet-navy', 'font-bold'));
-
-            const target = document.getElementById(tabId);
-            if (target) target.classList.remove('hidden');
-
-            const btn = document.getElementById('btn-' + tabId);
-            if (btn) btn.classList.add('bg-hovet-light', 'text-hovet-navy', 'font-bold');
-
-            if (tabId === 'tab-relatorios') loadReports();
-            if (tabId === 'tab-plantoes') loadShifts();
-            if (window.lucide) lucide.createIcons();
-        }
-
-        function initClock() {
-            setInterval(() => {
-                const now = new Date();
-                const clockEl = document.getElementById('liveClock');
-                const dateEl = document.getElementById('liveDate');
-                if (clockEl) clockEl.textContent = now.toLocaleTimeString('pt-BR');
-                if (dateEl) dateEl.textContent = now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            }, 1000);
-        }
-
-        async function handleEmailPasswordLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const pass = document.getElementById('loginPassword').value;
-            const errBox = document.getElementById('loginErrorMsg');
-
-            errBox.classList.add('hidden');
-
-            try {
-                if (window.fbSignIn && window.fbAuth) {
-                    await window.fbSignIn(window.fbAuth, email, pass);
-                } else {
-                    window.currentSession = { 
-                        name: email.split('@')[0], 
-                        email: email, 
-                        role: email.includes('admin') || email.includes('coord') ? 'coordenacao' : 'colaborador' 
-                    };
-                    document.getElementById('loginScreen').classList.add('hidden');
-                    document.getElementById('loggedUserName').textContent = window.currentSession.name;
-                    document.getElementById('loggedUserRoleBadge').textContent = window.currentSession.role === 'coordenacao' ? 'Coordenação' : 'Prestador';
-
-                    const adminElements = document.querySelectorAll('.admin-only');
-                    if (window.currentSession.role === 'coordenacao') {
-                        adminElements.forEach(el => el.classList.remove('hidden'));
-                    } else {
-                        adminElements.forEach(el => el.classList.add('hidden'));
+        function bootstrapCoordUser() {
+            let users = JSON.parse(localStorage.getItem('hovet_users') || '[]');
+            if (users.length === 0) {
+                // Apenas a conta inicial do Administrador/Coordenação
+                users = [
+                    {
+                        id: 'usr-coord',
+                        name: 'Coordenação HOVET',
+                        email: 'coordenacao.hovet@ufmt.br',
+                        password: 'admin',
+                        role: 'COORDENADOR'
                     }
-                }
-            } catch (err) {
-                errBox.textContent = "Falha no login: Verifique seu e-mail e senha.";
-                errBox.classList.remove('hidden');
+                ];
+                localStorage.setItem('hovet_users', JSON.stringify(users));
             }
         }
 
-        async function handleLogout() {
-            if (window.fbSignOut && window.fbAuth) {
-                await window.fbSignOut(window.fbAuth);
-            }
-            location.reload();
-        }
+        function initSessionUser() {
+            let session = JSON.parse(localStorage.getItem('hovet_session') || 'null');
+            const overlay = document.getElementById('loginOverlay');
 
-        async function handleCreateUser(e) {
-            e.preventDefault();
-            const name = document.getElementById('newUserName').value;
-            const email = document.getElementById('newUserEmail').value;
-            const pass = document.getElementById('newUserPassword').value;
-            const role = document.getElementById('newUserRole').value;
-
-            try {
-                if (!window.fbCreateUser) throw new Error("Firebase não configurado.");
-                const cred = await window.fbCreateUser(window.fbAuth, email, pass);
-                await window.fbSetDoc(window.fbDoc(window.fbDb, "users", cred.user.uid), {
-                    name,
-                    email,
-                    role,
-                    createdAt: new Date().toISOString()
-                });
-                alert("Usuário " + name + " cadastrado no Firebase com sucesso!");
-                e.target.reset();
-            } catch (err) {
-                alert("Erro ao cadastrar: " + err.message);
-            }
-        }
-
-        async function bootstrapCoordUser() {
-            const email = prompt("Digite o e-mail oficial da Coordenação:", "coordenacao.sinop@ufmt.br");
-            if (!email) return;
-            const pass = prompt("Digite a senha para essa conta (mínimo 6 caracteres):", "hovet2026");
-            if (!pass) return;
-            const name = prompt("Nome do Coordenador / Responsável:", "Coordenação HOVET");
-            if (!name) return;
-
-            try {
-                if (window.fbCreateUser && window.fbAuth) {
-                    const cred = await window.fbCreateUser(window.fbAuth, email, pass);
-                    await window.fbSetDoc(window.fbDoc(window.fbDb, "users", cred.user.uid), {
-                        name: name,
-                        email: email,
-                        role: "coordenacao",
-                        createdAt: new Date().toISOString()
-                    });
-                    alert("Conta de coordenação criada com sucesso no Firebase!");
-                } else {
-                    alert("Firebase não está totalmente carregado no momento. Verifique a conexão.");
-                }
-            } catch (err) {
-                alert("Aviso / Erro ao criar conta de coordenação: " + err.message);
-            }
-        }
-
-        function promptPunchJustification(type) {
-            pendingPunchType = type;
-            const titleEl = document.getElementById('modalPunchTypeTitle');
-            const inputEl = document.getElementById('punchJustificationInput');
-            
-            if (titleEl) titleEl.textContent = `Registrar ${type}`;
-            if (inputEl) inputEl.value = '';
-            
-            const modal = document.getElementById('justificationModal');
-            if (modal) modal.classList.remove('hidden');
-            if (window.lucide) lucide.createIcons();
-        }
-
-        function closeJustificationModal() {
-            pendingPunchType = null;
-            const modal = document.getElementById('justificationModal');
-            if (modal) modal.classList.add('hidden');
-        }
-
-        async function confirmPunchRegistration() {
-            if (!pendingPunchType) return;
-            const type = pendingPunchType;
-            const justification = document.getElementById('punchJustificationInput').value.trim();
-            
-            closeJustificationModal();
-            await registerPunch(type, justification);
-        }
-
-        async function registerPunch(type, justification = '') {
-            if (!window.currentSession) {
-                alert("Nenhum usuário logado.");
+            if (!session) {
+                if (overlay) overlay.classList.remove('hidden');
                 return;
             }
-            const now = new Date();
 
-            const punchPayload = {
-                userId: window.currentSession.id || 'uid-local',
-                userName: window.currentSession.name || window.currentSession.email || 'Prestador',
-                date: now.toISOString().split('T')[0],
-                time: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                type: type,
-                reason: justification || null,
-                timestamp: now.toISOString(),
-                location: currentLocationData || { latitude: null, longitude: null, note: "Sem GPS" }
-            };
+            if (overlay) overlay.classList.add('hidden');
+            window.currentSession = session;
 
-            try {
-                if (window.fbAddDoc && window.fbDb) {
-                    await window.fbAddDoc(window.fbCollection(window.fbDb, "punches"), punchPayload);
+            const sessionInfo = document.getElementById('sessionUserInfo');
+            if (sessionInfo) {
+                sessionInfo.textContent = `👤 ${session.name} (${session.role})`;
+            }
+
+            // Exibir/Ocultar elementos exclusivos de coordenação
+            document.querySelectorAll('.coord-only').forEach(el => {
+                if (session.role === 'COORDENADOR') {
+                    el.classList.remove('hidden');
                 } else {
-                    let localPunches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
-                    localPunches.push(punchPayload);
-                    localStorage.setItem('hovet_punches', JSON.stringify(localPunches));
+                    el.classList.add('hidden');
                 }
-                alert("Ponto de " + type + " registrado com sucesso!");
-                loadUserPunches();
-            } catch (err) {
-                console.error("Erro ao registrar ponto:", err);
-                let localPunches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
-                localPunches.push(punchPayload);
-                localStorage.setItem('hovet_punches', JSON.stringify(localPunches));
-                alert("Ponto de " + type + " registrado localmente!");
-                loadUserPunches();
+            });
+
+            loadUsersList();
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+            const password = document.getElementById('loginPassword').value;
+            const errorMsg = document.getElementById('loginErrorMessage');
+
+            const users = JSON.parse(localStorage.getItem('hovet_users') || '[]');
+            const matchedUser = users.find(u => u.email.toLowerCase() === email && u.password === password);
+
+            if (matchedUser) {
+                if (errorMsg) errorMsg.classList.add('hidden');
+                localStorage.setItem('hovet_session', JSON.stringify(matchedUser));
+                initSessionUser();
+                window.location.reload();
+            } else {
+                if (errorMsg) errorMsg.classList.remove('hidden');
             }
         }
 
+        function logoutSession() {
+            localStorage.removeItem('hovet_session');
+            window.location.reload();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            const target = document.getElementById('tab-' + tabId);
+            if (target) target.classList.remove('hidden');
+
+            document.querySelectorAll('[id^="tabBtn-"]').forEach(btn => {
+                btn.className = 'px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition flex items-center space-x-2 whitespace-nowrap text-slate-600 hover:bg-slate-100';
+            });
+            const activeBtn = document.getElementById('tabBtn-' + tabId);
+            if (activeBtn) {
+                activeBtn.className = 'px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition flex items-center space-x-2 whitespace-nowrap bg-hovet-navy text-white shadow-xs';
+            }
+
+            if (tabId === 'plantoes') loadShifts();
+            if (tabId === 'relatorios') generateReport();
+        }
+
+        // Modal de Batida
+        function openPunchConfirmation(type) {
+            pendingPunchType = type;
+            document.getElementById('modalPunchTypeLabel').textContent = type;
+            document.getElementById('modalPunchJustification').value = '';
+            document.getElementById('punchModal').classList.remove('hidden');
+        }
+
+        function closePunchModal() {
+            pendingPunchType = null;
+            document.getElementById('punchModal').classList.add('hidden');
+        }
+
+        function submitPunchFromModal() {
+            if (!pendingPunchType) return;
+            const justification = document.getElementById('modalPunchJustification').value.trim();
+            savePunch(pendingPunchType, justification);
+            closePunchModal();
+        }
+
+        function savePunch(type, justification = '') {
+            if (!window.currentSession) return;
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toLocaleTimeString('pt-BR');
+
+            const punchRecord = {
+                id: 'punch-' + Date.now(),
+                userId: window.currentSession.id,
+                userName: window.currentSession.name,
+                date: dateStr,
+                time: timeStr,
+                type: type,
+                justification: justification,
+                location: currentLocationData ? `${currentLocationData.lat.toFixed(5)}, ${currentLocationData.lng.toFixed(5)}` : 'Sem GPS',
+                createdAt: now.toISOString()
+            };
+
+            let punches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
+            punches.push(punchRecord);
+            localStorage.setItem('hovet_punches', JSON.stringify(punches));
+
+            alert(`Ponto de ${type} registrado com sucesso!`);
+            loadPunchesToday();
+            generateReport();
+        }
+
+        function loadPunchesToday() {
+            if (!window.currentSession) return;
+            const now = new Date().toISOString().split('T')[0];
+            const punches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
+            
+            const todayPunches = punches.filter(p => p.userId === window.currentSession.id && p.date === now);
+            
+            const listEl = document.getElementById('todayPunchesList');
+            const countEl = document.getElementById('todayRecordsCount');
+
+            if (countEl) countEl.textContent = `${todayPunches.length} Batida(s)`;
+
+            if (!listEl) return;
+            if (todayPunches.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 italic col-span-full">Nenhuma batida efetuada hoje.</p>`;
+                return;
+            }
+
+            listEl.innerHTML = '';
+            todayPunches.forEach(p => {
+                listEl.innerHTML += `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-1 text-xs">
+                        <div class="flex justify-between items-center font-bold text-hovet-navy">
+                            <span>${p.type}</span>
+                            <span class="text-hovet-blue font-mono font-extrabold">${p.time}</span>
+                        </div>
+                        ${p.justification ? `<p class="text-[11px] text-slate-600 bg-white p-2 rounded-xl border border-slate-100">📝 ${p.justification}</p>` : ''}
+                        <p class="text-[10px] text-slate-400 font-mono">📍 ${p.location}</p>
+                    </div>
+                `;
+            });
+        }
+
+        // Lógica de Escala de Plantões
         async function handleShiftRegister(e) {
             e.preventDefault();
             if (!window.currentSession) {
@@ -821,34 +767,69 @@
             const sector = document.getElementById('shiftSector').value;
 
             const shiftPayload = {
-                userId: window.currentSession.id || 'uid-local',
-                userName: window.currentSession.name || window.currentSession.email || 'Prestador',
+                userId: window.currentSession.id,
+                userName: window.currentSession.name,
                 date,
                 turn,
                 sector,
-                createdAt: new Date().toISOString()
+                updatedAt: new Date().toISOString()
             };
 
-            try {
-                if (window.fbAddDoc && window.fbDb) {
-                    await window.fbAddDoc(window.fbCollection(window.fbDb, "shifts"), shiftPayload);
-                } else {
-                    let localShifts = JSON.parse(localStorage.getItem('hovet_shifts') || '[]');
-                    localShifts.push(shiftPayload);
-                    localStorage.setItem('hovet_shifts', JSON.stringify(localShifts));
+            let localShifts = JSON.parse(localStorage.getItem('hovet_shifts') || '[]');
+            if (editingShiftId) {
+                const idx = localShifts.findIndex(s => (s.id || s.createdAt) === editingShiftId);
+                if (idx !== -1) {
+                    localShifts[idx] = { ...localShifts[idx], ...shiftPayload };
                 }
-                alert("Plantão cadastrado com sucesso!");
-                e.target.reset();
-                loadShifts();
-            } catch(err) {
-                console.error("Erro ao registrar plantão:", err);
-                let localShifts = JSON.parse(localStorage.getItem('hovet_shifts') || '[]');
+                alert("Plantão atualizado com sucesso!");
+            } else {
+                shiftPayload.id = 'shift-' + Date.now();
+                shiftPayload.createdAt = new Date().toISOString();
                 localShifts.push(shiftPayload);
-                localStorage.setItem('hovet_shifts', JSON.stringify(localShifts));
-                alert("Plantão cadastrado localmente!");
-                e.target.reset();
-                loadShifts();
+                alert("Plantão cadastrado com sucesso!");
             }
+            localStorage.setItem('hovet_shifts', JSON.stringify(localShifts));
+
+            cancelShiftEdit();
+            e.target.reset();
+            loadShifts();
+        }
+
+        function cancelShiftEdit() {
+            editingShiftId = null;
+            document.getElementById('shiftFormTitle').textContent = 'Cadastrar Plantão na Escala';
+            document.getElementById('btnSubmitShift').textContent = 'Registrar Escala de Plantão';
+            document.getElementById('btnCancelEditShift').classList.add('hidden');
+            const shiftDate = document.getElementById('shiftDate');
+            if (shiftDate) shiftDate.value = '';
+        }
+
+        function editShift(id) {
+            const shift = loadedShiftsData.find(s => (s.id || s.createdAt) === id);
+            if (!shift) return;
+
+            editingShiftId = id;
+            document.getElementById('shiftDate').value = shift.date || '';
+            document.getElementById('shiftTurn').value = shift.turn || '07h - 13h';
+            document.getElementById('shiftSector').value = shift.sector || 'Triagem';
+
+            document.getElementById('shiftFormTitle').textContent = 'Alterar/Editar Plantão na Escala';
+            document.getElementById('btnSubmitShift').textContent = 'Salvar Alterações do Plantão';
+            document.getElementById('btnCancelEditShift').classList.remove('hidden');
+
+            document.getElementById('tab-plantoes').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function deleteShift(id) {
+            if (!confirm("Tem certeza de que deseja remover este plantão da escala?")) return;
+
+            let localShifts = JSON.parse(localStorage.getItem('hovet_shifts') || '[]');
+            localShifts = localShifts.filter(s => (s.id || s.createdAt) !== id);
+            localStorage.setItem('hovet_shifts', JSON.stringify(localShifts));
+
+            alert("Plantão removido com sucesso!");
+            if (editingShiftId === id) cancelShiftEdit();
+            loadShifts();
         }
 
         function navigateMonth(offset) {
@@ -857,344 +838,322 @@
         }
 
         function renderCalendar() {
-            const grid = document.getElementById('calendarGrid');
-            const label = document.getElementById('calendarMonthLabel');
-            if (!grid || !label) return;
-
             const year = currentCalendarDate.getFullYear();
             const month = currentCalendarDate.getMonth();
 
-            label.textContent = currentCalendarDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const totalDays = new Date(year, month + 1, 0).getDate();
-
-            grid.innerHTML = '';
-
-            for (let i = 0; i < firstDay; i++) {
-                grid.innerHTML += `<div class="bg-slate-50/50 p-1 min-h-[50px] rounded-lg"></div>`;
+            const monthTitle = document.getElementById('calendarMonthTitle');
+            if (monthTitle) {
+                monthTitle.textContent = currentCalendarDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
             }
 
-            for (let day = 1; day <= totalDays; day++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const dayShifts = loadedShiftsData.filter(s => s.date === dateStr);
+            const grid = document.getElementById('calendarGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                grid.innerHTML += `<div class="p-2 bg-slate-50/50 min-h-[70px] rounded-xl border border-slate-100"></div>`;
+            }
+
+            const sectorStyles = {
+                'Triagem': 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                'Internação': 'bg-sky-100 text-sky-800 border-sky-300',
+                'Plantão Diurno': 'bg-amber-100 text-amber-800 border-amber-300',
+                'Plantão Noturno': 'bg-indigo-100 text-indigo-800 border-indigo-300'
+            };
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayShifts = loadedShiftsData.filter(s => s.date === dayStr);
 
                 let shiftsHtml = '';
                 dayShifts.forEach(s => {
+                    const style = sectorStyles[s.sector] || 'bg-blue-100 text-hovet-blue border-blue-300';
                     shiftsHtml += `
-                        <div class="bg-blue-50 border border-blue-200 text-hovet-navy p-1 rounded text-[9px] font-extrabold truncate mt-1" title="${s.userName} (${s.sector})">
+                        <div class="mt-1 px-1.5 py-0.5 ${style} border rounded-md text-[10px] font-black truncate" title="${s.userName} - ${s.sector} (${s.turn})">
                             👤 ${s.userName}
                         </div>
                     `;
                 });
 
                 grid.innerHTML += `
-                    <div class="border border-slate-100 bg-white p-1 rounded-xl min-h-[55px] text-left flex flex-col justify-between">
-                        <span class="text-[10px] font-bold text-slate-400 block">${day}</span>
-                        <div class="overflow-y-auto max-h-[45px]">${shiftsHtml}</div>
+                    <div class="p-1.5 bg-white min-h-[75px] rounded-xl border border-slate-200 flex flex-col justify-start">
+                        <span class="text-xs font-bold text-slate-700">${day}</span>
+                        ${shiftsHtml}
                     </div>
                 `;
             }
         }
 
-        async function loadShifts() {
+        function loadShifts() {
             const listEl = document.getElementById('shiftsList');
-            if (!window.currentSession) return;
+            let shiftsData = JSON.parse(localStorage.getItem('hovet_shifts') || '[]');
 
-            try {
-                let shiftsData = [];
-                if (window.fbGetDocs && window.fbDb) {
-                    try {
-                        const querySnapshot = await window.fbGetDocs(window.fbCollection(window.fbDb, "shifts"));
-                        querySnapshot.forEach(docSnap => shiftsData.push(docSnap.data()));
-                    } catch(e) {
-                        shiftsData = JSON.parse(localStorage.getItem('hovet_shifts') || '[]');
-                    }
-                } else {
-                    shiftsData = JSON.parse(localStorage.getItem('hovet_shifts') || '[]');
-                }
+            loadedShiftsData = shiftsData;
+            renderCalendar();
 
-                loadedShiftsData = shiftsData;
-                renderCalendar();
-
-                if (!listEl) return;
-
-                if (shiftsData.length === 0) {
-                    listEl.innerHTML = `<p class="text-xs text-slate-400">Nenhum plantão registrado.</p>`;
-                    return;
-                }
-
-                listEl.innerHTML = '';
-                shiftsData.forEach((s) => {
-                    listEl.innerHTML += `
-                        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center text-xs">
-                            <div>
-                                <span class="font-bold text-hovet-navy block">${s.sector}</span>
-                                <span class="text-slate-500">${s.date} - ${s.turn}</span>
-                            </div>
-                            <span class="px-2 py-1 bg-blue-100 text-hovet-blue rounded-lg font-semibold text-[10px]">${s.userName}</span>
-                        </div>
-                    `;
-                });
-            } catch (err) {
-                console.error("Erro ao carregar plantões:", err);
-            }
-        }
-
-        async function handleManualPunch(e) {
-            e.preventDefault();
-            if (!window.currentSession) {
-                alert("Nenhum usuário logado.");
+            if (!listEl) return;
+            if (shiftsData.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400">Nenhum plantão registrado.</p>`;
                 return;
             }
+
+            const sectorBadgeStyles = {
+                'Triagem': 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                'Internação': 'bg-sky-100 text-sky-800 border-sky-300',
+                'Plantão Diurno': 'bg-amber-100 text-amber-800 border-amber-300',
+                'Plantão Noturno': 'bg-indigo-100 text-indigo-800 border-indigo-300'
+            };
+
+            listEl.innerHTML = '';
+            shiftsData.forEach((s) => {
+                const badgeStyle = sectorBadgeStyles[s.sector] || 'bg-blue-100 text-hovet-blue border-blue-300';
+                const shiftId = s.id || s.createdAt;
+                
+                listEl.innerHTML += `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+                        <div class="flex items-center space-x-3">
+                            <span class="px-2.5 py-1 ${badgeStyle} border rounded-lg font-extrabold text-[11px] shadow-xs">
+                                ${s.sector}
+                            </span>
+                            <div>
+                                <span class="font-bold text-hovet-navy block text-sm">👤 ${s.userName}</span>
+                                <span class="text-slate-500 text-[11px]">${s.date} • ${s.turn}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                            <button onclick="editShift('${shiftId}')" class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center space-x-1">
+                                <i data-lucide="edit" class="w-3 h-3"></i>
+                                <span>Editar</span>
+                            </button>
+                            <button onclick="deleteShift('${shiftId}')" class="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[11px] transition shadow-xs flex items-center space-x-1">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                <span>Excluir</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // Lógica de Ajuste Manual
+        function handleManualPunch(e) {
+            e.preventDefault();
+            if (!window.currentSession) return;
 
             const date = document.getElementById('manualDate').value;
             const time = document.getElementById('manualTime').value;
             const type = document.getElementById('manualType').value;
-            const reason = document.getElementById('manualReason').value;
-            const now = new Date();
+            const justification = document.getElementById('manualJustification').value.trim();
 
-            const manualPayload = {
-                userId: window.currentSession.id || 'uid-local',
-                userName: window.currentSession.name || window.currentSession.email || 'Prestador',
+            const punchRecord = {
+                id: 'punch-manual-' + Date.now(),
+                userId: window.currentSession.id,
+                userName: window.currentSession.name,
                 date: date,
                 time: time,
                 type: type,
-                reason: reason,
-                createdAt: now.toISOString(),
-                isManual: true,
-                location: currentLocationData || { latitude: null, longitude: null, note: "Sem GPS" }
+                justification: justification + " (Ajuste Manual)",
+                location: 'Ajuste Manual',
+                createdAt: new Date().toISOString()
             };
 
-            try {
-                if (window.fbAddDoc && window.fbDb) {
-                    await window.fbAddDoc(window.fbCollection(window.fbDb, "punches"), manualPayload);
-                } else {
-                    let localPunches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
-                    localPunches.push(manualPayload);
-                    localStorage.setItem('hovet_punches', JSON.stringify(localPunches));
-                }
-                alert("Ajuste manual registrado com sucesso!");
-                e.target.reset();
-            } catch (err) {
-                console.error("Erro no ponto manual:", err);
-                let localPunches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
-                localPunches.push(manualPayload);
-                localStorage.setItem('hovet_punches', JSON.stringify(localPunches));
-                alert("Ajuste manual registrado localmente!");
-                e.target.reset();
-            }
+            let punches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
+            punches.push(punchRecord);
+            localStorage.setItem('hovet_punches', JSON.stringify(punches));
+
+            alert("Ajuste manual de ponto salvo com sucesso!");
+            e.target.reset();
+            generateReport();
         }
 
-        async function loadUserPunches() {
-            const listEl = document.getElementById('todayPunchesList');
-            if (!listEl || !window.currentSession) return;
+        // Lógica de Relatórios
+        function populateMonthFilter() {
+            const punches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
+            const select = document.getElementById('reportMonthFilter');
+            if (!select) return;
 
-            const todayStr = new Date().toISOString().split('T')[0];
+            const monthsSet = new Set();
+            const currentMonthKey = new Date().toISOString().substring(0, 7);
+            monthsSet.add(currentMonthKey);
 
-            try {
-                let punches = [];
-                if (window.fbGetDocs && window.fbDb) {
-                    try {
-                        const q = window.fbQuery(
-                            window.fbCollection(window.fbDb, "punches"),
-                            window.fbWhere("userId", "==", window.currentSession.id || 'uid-local'),
-                            window.fbWhere("date", "==", todayStr)
-                        );
-                        const querySnapshot = await window.fbGetDocs(q);
-                        querySnapshot.forEach(docSnap => punches.push(docSnap.data()));
-                    } catch(e) {
-                        const allLocal = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
-                        punches = allLocal.filter(p => p.date === todayStr);
-                    }
-                } else {
-                    const allLocal = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
-                    punches = allLocal.filter(p => p.date === todayStr);
-                }
+            punches.forEach(p => {
+                if (p.date) monthsSet.add(p.date.substring(0, 7));
+            });
 
-                if (punches.length === 0) {
-                    listEl.innerHTML = `<p class="text-xs text-slate-400 col-span-full text-center">Nenhuma batida realizada hoje.</p>`;
-                    return;
-                }
+            const sortedMonths = Array.from(monthsSet).sort().reverse();
+            select.innerHTML = '';
+            sortedMonths.forEach(m => {
+                const [y, monthNum] = m.split('-');
+                const dateObj = new Date(parseInt(y), parseInt(monthNum) - 1, 1);
+                const monthName = dateObj.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                select.innerHTML += `<option value="${m}">${monthName.toUpperCase()}</option>`;
+            });
 
-                punches.sort((a, b) => (a.timestamp || a.time).localeCompare(b.timestamp || b.time));
-
-                const typeStyles = {
-                    'Entrada': 'bg-emerald-50 border-emerald-200 text-emerald-800',
-                    'Saída Almoço': 'bg-amber-50 border-amber-200 text-amber-800',
-                    'Retorno Almoço': 'bg-blue-50 border-blue-200 text-blue-800',
-                    'Saída': 'bg-rose-50 border-rose-200 text-rose-800',
-                    'Entrada Plantão': 'bg-indigo-50 border-indigo-200 text-indigo-800',
-                    'Saída Plantão': 'bg-purple-50 border-purple-200 text-purple-800'
-                };
-
-                listEl.innerHTML = '';
-                punches.forEach((p, index) => {
-                    const style = typeStyles[p.type] || 'bg-slate-50 border-slate-200 text-slate-800';
-                    const locText = p.location && p.location.latitude 
-                        ? `<a href="${p.location.googleMapsUrl}" target="_blank" class="text-[10px] text-hovet-blue underline font-medium block mt-1">Ver GPS</a>`
-                        : `<span class="text-[9px] text-slate-400 block mt-1">Sem GPS</span>`;
-
-                    const reasonText = p.reason 
-                        ? `<span class="text-[10px] text-slate-600 bg-white/80 p-1 rounded border border-slate-200 block mt-1.5 font-normal text-left truncate" title="${p.reason}">📝 ${p.reason}</span>` 
-                        : '';
-
-                    listEl.innerHTML += `
-                        <div class="p-3 ${style} border rounded-xl text-center shadow-sm">
-                            <span class="text-[10px] font-extrabold uppercase block tracking-wide">${p.type} #${index + 1} ${p.isManual ? '(Manual)' : ''}</span>
-                            <span class="text-xl font-black">${p.time}</span>
-                            ${reasonText}
-                            ${locText}
-                        </div>
-                    `;
+            // Opções do filtro de usuário
+            const userSelect = document.getElementById('reportUserFilter');
+            if (userSelect) {
+                const users = JSON.parse(localStorage.getItem('hovet_users') || '[]');
+                userSelect.innerHTML = `<option value="ALL">Todos os Prestadores</option>`;
+                users.forEach(u => {
+                    userSelect.innerHTML += `<option value="${u.id}">${u.name}</option>`;
                 });
-            } catch (err) {
-                console.error("Erro ao carregar batidas:", err);
             }
         }
 
-        async function loadReports() {
-            const tbody = document.getElementById('reportsTableBody');
-            const userFilterSelect = document.getElementById('reportUserFilter');
-            const monthFilterSelect = document.getElementById('reportMonthFilter');
+        function generateReport() {
+            const monthVal = document.getElementById('reportMonthFilter')?.value || new Date().toISOString().substring(0, 7);
+            const userFilter = document.getElementById('reportUserFilter')?.value || 'ALL';
+            const tbody = document.getElementById('reportTableBody');
+            
+            const punches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
+            
+            let filtered = punches.filter(p => p.date && p.date.startsWith(monthVal));
+            if (userFilter !== 'ALL') {
+                filtered = filtered.filter(p => p.userId === userFilter);
+            } else if (window.currentSession?.role !== 'COORDENADOR') {
+                if (window.currentSession?.id) {
+                    filtered = filtered.filter(p => p.userId === window.currentSession.id);
+                } else {
+                    filtered = [];
+                }
+            }
+
+            const headerPeriod = document.getElementById('reportHeaderPeriod');
+            if (headerPeriod) headerPeriod.textContent = `Período: ${monthVal}`;
+
+            const headerGen = document.getElementById('reportHeaderGeneratedAt');
+            if (headerGen) headerGen.textContent = `Emissão: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`;
+
             if (!tbody) return;
-
-            try {
-                let punches = [];
-                if (window.fbGetDocs && window.fbDb) {
-                    try {
-                        const querySnapshot = await window.fbGetDocs(window.fbCollection(window.fbDb, "punches"));
-                        querySnapshot.forEach(docSnap => punches.push(docSnap.data()));
-                    } catch(e) {
-                        punches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
-                    }
-                } else {
-                    punches = JSON.parse(localStorage.getItem('hovet_punches') || '[]');
-                }
-
-                if (punches.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
-                    return;
-                }
-
-                // Populando Filtro de Meses (Mês/Ano)
-                if (monthFilterSelect) {
-                    const currentMonthVal = monthFilterSelect.value || 'ALL';
-                    const availableMonths = Array.from(new Set(punches.map(p => {
-                        if (!p.date) return null;
-                        const [year, month] = p.date.split('-');
-                        return `${year}-${month}`;
-                    }).filter(Boolean))).sort().reverse();
-
-                    if (monthFilterSelect.options.length <= 1) {
-                        monthFilterSelect.innerHTML = `<option value="ALL">Todos os Meses</option>`;
-                        availableMonths.forEach(m => {
-                            const [y, monthNum] = m.split('-');
-                            const dateObj = new Date(parseInt(y), parseInt(monthNum) - 1, 1);
-                            const monthLabel = dateObj.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-                            monthFilterSelect.innerHTML += `<option value="${m}">${monthLabel.toUpperCase()}</option>`;
-                        });
-                        if (currentMonthVal !== 'ALL') monthFilterSelect.value = currentMonthVal;
-                    }
-                }
-
-                // Populando Filtro de Prestadores
-                if (userFilterSelect) {
-                    const selectedVal = userFilterSelect.value || 'ALL';
-                    const uniqueUsers = Array.from(new Set(punches.map(p => p.userName || 'Prestador'))).sort();
-                    
-                    if (userFilterSelect.options.length <= 1) {
-                        userFilterSelect.innerHTML = `<option value="ALL">Exibir Todos os Prestadores (${uniqueUsers.length})</option>`;
-                        uniqueUsers.forEach(u => {
-                            userFilterSelect.innerHTML += `<option value="${u}">${u}</option>`;
-                        });
-                        if (selectedVal !== 'ALL') userFilterSelect.value = selectedVal;
-                    }
-                }
-
-                // Aplicação dos Filtros
-                const activeUserFilter = userFilterSelect ? userFilterSelect.value : 'ALL';
-                const activeMonthFilter = monthFilterSelect ? monthFilterSelect.value : 'ALL';
-
-                if (activeUserFilter && activeUserFilter !== 'ALL') {
-                    punches = punches.filter(p => (p.userName || 'Prestador') === activeUserFilter);
-                }
-
-                if (activeMonthFilter && activeMonthFilter !== 'ALL') {
-                    punches = punches.filter(p => p.date && p.date.startsWith(activeMonthFilter));
-                }
-
-                const grouped = {};
-                punches.forEach(p => {
-                    const key = `${p.userName || p.userId || 'Prestador'}_${p.date}`;
-                    if (!grouped[key]) {
-                        grouped[key] = {
-                            userName: p.userName || 'Prestador',
-                            date: p.date,
-                            punches: {}
-                        };
-                    }
-                    if (!grouped[key].punches[p.type]) {
-                        grouped[key].punches[p.type] = [];
-                    }
-                    grouped[key].punches[p.type].push(p);
-                });
-
-                const sortedKeys = Object.keys(grouped).sort((a, b) => grouped[b].date.localeCompare(grouped[a].date));
-
-                if (sortedKeys.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">Nenhum registro encontrado para os filtros selecionados.</td></tr>`;
-                    return;
-                }
-
-                tbody.innerHTML = '';
-                sortedKeys.forEach((key) => {
-                    const row = grouped[key];
-                    const types = ['Entrada', 'Saída Almoço', 'Retorno Almoço', 'Saída', 'Entrada Plantão', 'Saída Plantão'];
-
-                    let colsHtml = '';
-                    types.forEach(t => {
-                        const punchList = row.punches[t];
-                        if (punchList && punchList.length > 0) {
-                            punchList.sort((a, b) => (a.timestamp || a.time).localeCompare(b.timestamp || b.time));
-                            
-                            const timesContent = punchList.map(p => {
-                                const locText = p.location && p.location.latitude 
-                                    ? `<a href="${p.location.googleMapsUrl}" target="_blank" class="text-[9px] text-hovet-blue underline block font-normal">GPS (${p.location.latitude.toFixed(2)}, ${p.location.longitude.toFixed(2)})</a>`
-                                    : '';
-                                const reasonTag = p.reason 
-                                    ? `<span class="text-[9px] text-slate-600 bg-amber-50 border border-amber-200 px-1 py-0.5 rounded block font-normal mt-0.5" title="${p.reason}">📝 ${p.reason}</span>` 
-                                    : '';
-
-                                return `<div class="my-0.5">
-                                    <span class="font-bold text-hovet-navy">${p.time}</span>
-                                    ${p.isManual ? '<span class="text-[9px] text-amber-600 font-bold block">(Manual)</span>' : ''}
-                                    ${reasonTag}
-                                    ${locText}
-                                </div>`;
-                            }).join('<div class="border-t border-slate-100 my-1"></div>');
-
-                            colsHtml += `
-                                <td class="p-3 text-center border-r border-slate-200 align-top">
-                                    ${timesContent}
-                                </td>
-                            `;
-                        } else {
-                            colsHtml += `<td class="p-3 text-center border-r border-slate-200 text-slate-300 align-top">--:--</td>`;
-                        }
-                    });
-
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-50 border-b border-slate-200">
-                            <td class="p-3 font-bold text-hovet-navy border-r border-slate-200 align-top">${row.userName}</td>
-                            <td class="p-3 border-r border-slate-200 font-medium align-top">${row.date}</td>
-                            ${colsHtml}
-                        </tr>
-                    `;
-                });
-            } catch (err) {
-                console.error("Erro ao carregar relatórios:", err);
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-400">Nenhum registro de ponto localizado para este mês.</td></tr>`;
+                return;
             }
+
+            // Agrupar batidas por dia e usuário
+            const grouped = {};
+            filtered.forEach(p => {
+                const key = `${p.date}_${p.userId}`;
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        date: p.date,
+                        userName: p.userName,
+                        'Entrada': [],
+                        'Saída Almoço': [],
+                        'Retorno Almoço': [],
+                        'Saída': [],
+                        'Entrada Plantão': [],
+                        'Saída Plantão': [],
+                        justifications: []
+                    };
+                }
+                if (grouped[key][p.type]) {
+                    grouped[key][p.type].push(p.time);
+                }
+                if (p.justification) {
+                    grouped[key].justifications.push(`${p.type}: ${p.justification}`);
+                }
+            });
+
+            tbody.innerHTML = '';
+            Object.values(grouped).sort((a, b) => b.date.localeCompare(a.date)).forEach(row => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 border-b border-slate-200">
+                        <td class="p-2 border border-slate-200 font-bold">${row.date}</td>
+                        <td class="p-2 border border-slate-200">${row.userName}</td>
+                        <td class="p-2 border border-slate-200 font-mono text-emerald-700 font-bold">${row['Entrada'].join(', ') || '-'}</td>
+                        <td class="p-2 border border-slate-200 font-mono text-amber-700">${row['Saída Almoço'].join(', ') || '-'}</td>
+                        <td class="p-2 border border-slate-200 font-mono text-blue-700">${row['Retorno Almoço'].join(', ') || '-'}</td>
+                        <td class="p-2 border border-slate-200 font-mono text-rose-700 font-bold">${row['Saída'].join(', ') || '-'}</td>
+                        <td class="p-2 border border-slate-200 font-mono text-indigo-700 font-bold">${row['Entrada Plantão'].join(', ') || '-'}</td>
+                        <td class="p-2 border border-slate-200 font-mono text-purple-700 font-bold">${row['Saída Plantão'].join(', ') || '-'}</td>
+                        <td class="p-2 border border-slate-200 text-slate-600 text-[11px]">${row.justifications.join(' | ') || '-'}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Gestão de Perfis de Usuários
+        function handleSaveUser(e) {
+            e.preventDefault();
+            const name = document.getElementById('userNameInput').value.trim();
+            const email = document.getElementById('userEmailInput').value.trim();
+            const password = document.getElementById('userPasswordInput').value;
+            const role = document.getElementById('userRoleInput').value;
+
+            let users = JSON.parse(localStorage.getItem('hovet_users') || '[]');
+            
+            // Verificar se o email já existe
+            if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+                alert("Este e-mail já está cadastrado para outro colaborador.");
+                return;
+            }
+
+            const newUser = {
+                id: 'usr-' + Date.now(),
+                name,
+                email,
+                password,
+                role
+            };
+
+            users.push(newUser);
+            localStorage.setItem('hovet_users', JSON.stringify(users));
+
+            alert("Colaborador cadastrado com sucesso!");
+            e.target.reset();
+            loadUsersList();
+            populateMonthFilter();
+        }
+
+        function deleteUser(id) {
+            if (window.currentSession && window.currentSession.id === id) {
+                alert("Você não pode excluir a sua própria conta logada.");
+                return;
+            }
+
+            if (!confirm("Tem certeza que deseja remover este colaborador do sistema?")) return;
+
+            let users = JSON.parse(localStorage.getItem('hovet_users') || '[]');
+            users = users.filter(u => u.id !== id);
+            localStorage.setItem('hovet_users', JSON.stringify(users));
+
+            loadUsersList();
+            populateMonthFilter();
+        }
+
+        function loadUsersList() {
+            const listEl = document.getElementById('usersList');
+            if (!listEl) return;
+
+            const users = JSON.parse(localStorage.getItem('hovet_users') || '[]');
+            listEl.innerHTML = '';
+
+            users.forEach(u => {
+                listEl.innerHTML += `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center text-xs">
+                        <div>
+                            <span class="font-bold text-hovet-navy block text-sm">${u.name}</span>
+                            <span class="text-slate-500">${u.email}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-1 ${u.role === 'COORDENADOR' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-hovet-blue'} font-extrabold rounded-lg">
+                                ${u.role}
+                            </span>
+                            ${u.id !== 'usr-coord' ? `
+                                <button onclick="deleteUser('${u.id}')" class="p-1 text-rose-600 hover:bg-rose-100 rounded-lg transition" title="Excluir Colaborador">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            if (window.lucide) lucide.createIcons();
         }
     </script>
 </body>
