@@ -140,7 +140,20 @@
         .print-only { display: none; }
     </style>
 </head>
-<body class="h-full text-slate-800 font-sans antialiased flex flex-col bg-slate-50">
+<body class="h-full text-slate-800 font-sans antialiased flex flex-col bg-slate-50 relative overflow-x-hidden">
+
+    <!-- ÍCONES/FIGURINHAS DE FUNDO DA TELA (ÁGUA-RÁCULA / WATERMARK BACKGROUND) -->
+    <div class="fixed inset-0 pointer-events-none z-0 opacity-[0.035] flex flex-wrap justify-between items-center p-12 overflow-hidden select-none">
+        <div class="p-8"><i data-lucide="paw-print" class="w-32 h-32 text-hovet-navy"></i></div>
+        <div class="p-8"><i data-lucide="flask-conical" class="w-32 h-32 text-hovet-navy"></i></div>
+        <div class="p-8"><i data-lucide="scan-line" class="w-32 h-32 text-hovet-navy"></i></div>
+        <div class="p-8"><i data-lucide="stethoscope" class="w-32 h-32 text-hovet-navy"></i></div>
+        <div class="p-8"><i data-lucide="microscope" class="w-32 h-32 text-hovet-navy"></i></div>
+        <div class="p-8"><i data-lucide="paw-print" class="w-32 h-32 text-hovet-navy"></i></div>
+        <div class="p-8"><i data-lucide="activity" class="w-32 h-32 text-hovet-navy"></i></div>
+        <div class="p-8"><i data-lucide="flask-round" class="w-32 h-32 text-hovet-navy"></i></div>
+        <div class="p-8"><i data-lucide="cross" class="w-32 h-32 text-hovet-navy"></i></div>
+    </div>
 
     <!-- TELA DE LOGIN COM EMAIL E SENHA -->
     <div id="loginScreen" class="fixed inset-0 z-50 bg-hovet-navy flex items-center justify-center p-4">
@@ -215,7 +228,7 @@
     </header>
 
     <!-- Layout Principal -->
-    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6 relative z-10">
 
         <!-- Navegação Lateral Dinâmica -->
         <nav class="no-print w-full md:w-64 flex-shrink-0 flex md:flex-col gap-2 bg-white p-2.5 rounded-2xl border border-blue-100 shadow-sm h-fit">
@@ -251,43 +264,49 @@
 
             <!-- TAB: REGISTRAR PONTO -->
             <section id="tab-ponto" class="tab-content space-y-6">
-                <div class="bg-white rounded-3xl p-6 sm:p-8 border border-blue-100 shadow-sm text-center">
+                <!-- RELÓGIO + STATUS DE GPS DESTAQUE (LARGURA TOTAL) -->
+                <div class="bg-white rounded-3xl p-6 sm:p-8 border border-blue-100 shadow-sm text-center flex flex-col justify-center items-center">
                     <div class="inline-flex items-center space-x-2 px-3 py-1 bg-blue-50 text-hovet-blue rounded-full text-xs font-semibold mb-2">
                         <i data-lucide="clock" class="w-4 h-4"></i>
                         <span id="liveDate">Horário Oficial do Sistema</span>
                     </div>
-                    <div id="liveClock" class="text-4xl sm:text-6xl font-black text-hovet-navy tracking-tight my-2">
+                    <div id="liveClock" class="text-5xl sm:text-7xl font-black text-hovet-navy tracking-tight my-2">
                         00:00:00
                     </div>
-
-                    <!-- Status de Geolocalização -->
-                    <div id="geoStatus" class="inline-flex items-center space-x-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-[11px] font-medium my-2">
+                    <div id="geoStatus" class="inline-flex items-center space-x-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-[11px] font-medium my-1">
                         <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-600"></i>
                         <span id="geoStatusText">Capturando localização GPS...</span>
                     </div>
+                </div>
 
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mt-6">
-                        <button onclick="registerPunch('Entrada')" class="p-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
+                <!-- GRADE DE BOTÕES DE BATIDA COM CORES E ÍCONES REORDENADOS -->
+                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-hovet-navy flex items-center space-x-2">
+                        <i data-lucide="touchpad" class="w-4 h-4 text-hovet-blue"></i>
+                        <span>Selecione a Ação para Registrar Frequência</span>
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                        <button onclick="promptPunchJustification('Entrada')" class="p-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
                             <i data-lucide="log-in" class="w-5 h-5"></i>
                             <span class="text-xs">Entrada</span>
                         </button>
-                        <button onclick="registerPunch('Saída Almoço')" class="p-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
+                        <button onclick="promptPunchJustification('Saída Almoço')" class="p-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
                             <i data-lucide="utensils" class="w-5 h-5"></i>
                             <span class="text-xs">Saída Almoço</span>
                         </button>
-                        <button onclick="registerPunch('Retorno Almoço')" class="p-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
+                        <button onclick="promptPunchJustification('Retorno Almoço')" class="p-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
                             <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
                             <span class="text-xs">Volta Almoço</span>
                         </button>
-                        <button onclick="registerPunch('Saída')" class="p-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
+                        <button onclick="promptPunchJustification('Saída')" class="p-4 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
                             <i data-lucide="log-out" class="w-5 h-5"></i>
                             <span class="text-xs">Saída</span>
                         </button>
-                        <button onclick="registerPunch('Entrada Plantão')" class="p-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
+                        <button onclick="promptPunchJustification('Entrada Plantão')" class="p-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
                             <i data-lucide="shield-check" class="w-5 h-5"></i>
                             <span class="text-xs">Entrada Plantão</span>
                         </button>
-                        <button onclick="registerPunch('Saída Plantão')" class="p-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
+                        <button onclick="promptPunchJustification('Saída Plantão')" class="p-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl shadow-md transition flex flex-col items-center justify-center space-y-1">
                             <i data-lucide="shield-off" class="w-5 h-5"></i>
                             <span class="text-xs">Saída Plantão</span>
                         </button>
@@ -431,9 +450,15 @@
                                 <i data-lucide="file-text" class="w-5 h-5 text-hovet-blue"></i>
                                 <span>Relatório Geral e Individual de Pontos</span>
                             </h3>
-                            <p class="text-xs text-slate-500">Espelho completo de batidas e geolocalização dos prestadores.</p>
+                            <p class="text-xs text-slate-500">Espelho completo de batidas e geolocalização dos prestadores por mês.</p>
                         </div>
                         <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                            <!-- Filtro de Mês/Ano -->
+                            <div class="no-print">
+                                <select id="reportMonthFilter" onchange="loadReports()" class="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-hovet-navy focus:ring-2 focus:ring-hovet-blue focus:outline-none">
+                                    <!-- Populado via JS -->
+                                </select>
+                            </div>
                             <!-- Filtro Individual de Prestador -->
                             <div class="no-print flex-1 sm:flex-initial">
                                 <select id="reportUserFilter" onchange="loadReports()" class="w-full text-xs font-bold bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-hovet-navy focus:ring-2 focus:ring-hovet-blue focus:outline-none">
@@ -447,64 +472,104 @@
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto border border-slate-200 rounded-2xl">
-                        <table class="w-full text-left text-xs text-slate-700 border-collapse">
-                            <thead class="bg-slate-100 text-hovet-navy font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
-                                <tr>
-                                    <th class="p-3 border-r border-slate-200">Prestador</th>
-                                    <th class="p-3 border-r border-slate-200">Data</th>
-                                    <th class="p-3 border-r border-slate-200 text-center bg-emerald-50 text-emerald-900">1. Entrada</th>
-                                    <th class="p-3 border-r border-slate-200 text-center bg-amber-50 text-amber-900">2. Saída Int.</th>
-                                    <th class="p-3 border-r border-slate-200 text-center bg-blue-50 text-blue-900">3. Retorno Int.</th>
-                                    <th class="p-3 border-r border-slate-200 text-center bg-rose-50 text-rose-900">4. Saída</th>
-                                    <th class="p-3 border-r border-slate-200 text-center bg-indigo-50 text-indigo-900">5. Ent. Plantão</th>
-                                    <th class="p-3 text-center bg-purple-50 text-purple-900">6. Saí. Plantão</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reportsTableBody" class="divide-y divide-slate-200">
-                                <tr>
-                                    <td colspan="8" class="p-4 text-center text-slate-400">Carregando registros...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div id="reportsContainer" class="space-y-8">
+                        <div class="overflow-x-auto border border-slate-200 rounded-2xl">
+                            <table class="w-full text-left text-xs text-slate-700 border-collapse">
+                                <thead class="bg-slate-100 text-hovet-navy font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-3 border-r border-slate-200">Prestador</th>
+                                        <th class="p-3 border-r border-slate-200">Data</th>
+                                        <th class="p-3 border-r border-slate-200 text-center bg-emerald-50 text-emerald-900">1. Entrada</th>
+                                        <th class="p-3 border-r border-slate-200 text-center bg-amber-50 text-amber-900">2. Saída Int.</th>
+                                        <th class="p-3 border-r border-slate-200 text-center bg-blue-50 text-blue-900">3. Retorno Int.</th>
+                                        <th class="p-3 border-r border-slate-200 text-center bg-rose-50 text-rose-900">4. Saída</th>
+                                        <th class="p-3 border-r border-slate-200 text-center bg-indigo-50 text-indigo-900">5. Ent. Plantão</th>
+                                        <th class="p-3 text-center bg-purple-50 text-purple-900">6. Saí. Plantão</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportsTableBody" class="divide-y divide-slate-200">
+                                    <tr>
+                                        <td colspan="8" class="p-4 text-center text-slate-400">Carregando registros...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB: GERENCIAR PRESTADORES -->
+            <!-- TAB: GERENCIAR PRESTADORES (COORDENAÇÃO) -->
             <section id="tab-perfis" class="tab-content hidden space-y-6">
-                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-base font-bold text-hovet-navy">Cadastrar Novo Prestador (E-mail e Senha)</h3>
-                    </div>
-                    <form onsubmit="handleCreateUser(event)" class="space-y-4 max-w-lg">
+                <div class="bg-white rounded-3xl p-6 border border-blue-100 shadow-sm space-y-4">
+                    <h3 class="text-base font-bold text-hovet-navy flex items-center space-x-2">
+                        <i data-lucide="user-plus" class="w-5 h-5 text-hovet-blue"></i>
+                        <span>Cadastrar Novo Prestador no Firebase</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Cadastre médicos veterinários, residentes e técnicos com permissões específicas.</p>
+
+                    <form onsubmit="handleCreateUser(event)" class="space-y-4 max-w-xl pt-2 border-t border-slate-100">
                         <div>
                             <label class="block text-xs font-bold text-slate-600 mb-1">Nome Completo</label>
-                            <input type="text" id="newUserName" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
+                            <input type="text" id="newUserName" required placeholder="Ex: Dr. João Silva" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">E-mail Corporativo</label>
+                                <input type="email" id="newUserEmail" required placeholder="prestador@ufmt.br" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">Senha Inicial</label>
+                                <input type="password" id="newUserPassword" required minlength="6" placeholder="••••••••" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
+                            </div>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-1">E-mail</label>
-                            <input type="email" id="newUserEmail" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-1">Senha Inicial</label>
-                            <input type="password" id="newUserPassword" required placeholder="Mínimo 6 caracteres" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-1">Perfil no HOVET</label>
-                            <select id="newUserRole" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold">
-                                <option value="colaborador">Prestador / Médico Veterinário</option>
-                                <option value="coordenacao">Coordenação HOVET</option>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">Função / Perfil</label>
+                            <select id="newUserRole" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm">
+                                <option value="colaborador">Prestador de Serviço / Residente</option>
+                                <option value="coordenacao">Coordenação / Admin</option>
                             </select>
                         </div>
-                        <button type="submit" class="w-full py-2.5 bg-hovet-navy hover:bg-hovet-blue text-white text-sm font-bold rounded-xl transition">
-                            Cadastrar Usuário no Firebase
+                        <button type="submit" class="px-6 py-2.5 bg-hovet-navy hover:bg-hovet-blue text-white text-sm font-bold rounded-xl transition shadow">
+                            Cadastrar Usuário
                         </button>
                     </form>
                 </div>
             </section>
-
         </main>
+    </div>
+
+    <!-- MODAL DE JUSTIFICATIVA DE PONTO -->
+    <div id="justificationModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-blue-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center space-x-2">
+                    <div class="p-2 bg-blue-50 text-hovet-blue rounded-xl">
+                        <i data-lucide="message-square" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-hovet-navy" id="modalPunchTypeTitle">Confirmar Registro de Ponto</h3>
+                        <p class="text-[11px] text-slate-500">Adicione uma observação ou justificativa se necessário.</p>
+                    </div>
+                </div>
+                <button onclick="closeJustificationModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-hovet-navy mb-1.5">Justificativa / Observação (Opcional):</label>
+                <textarea id="punchJustificationInput" rows="3" placeholder="Ex: Atraso devido ao trânsito / Atendimento de emergência" class="w-full border border-slate-300 rounded-xl p-3 text-xs focus:ring-2 focus:ring-hovet-blue focus:outline-none resize-none"></textarea>
+            </div>
+
+            <div class="flex space-x-3 pt-2">
+                <button onclick="closeJustificationModal()" class="w-1/2 py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-xl transition">
+                    Cancelar
+                </button>
+                <button onclick="confirmPunchRegistration()" class="w-1/2 py-2.5 bg-hovet-navy hover:bg-hovet-blue text-white font-bold text-xs rounded-xl transition shadow">
+                    Confirmar Ponto
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- JAVASCRIPT GLOBAL -->
@@ -512,6 +577,7 @@
         let currentLocationData = null;
         let currentCalendarDate = new Date();
         let loadedShiftsData = [];
+        let pendingPunchType = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             initClock();
@@ -660,34 +726,52 @@
             if (!name) return;
 
             try {
-                let userUid = null;
-                try {
+                if (window.fbCreateUser && window.fbAuth) {
                     const cred = await window.fbCreateUser(window.fbAuth, email, pass);
-                    userUid = cred.user.uid;
-                } catch (authErr) {
-                    if (authErr.code === 'auth/email-already-in-use') {
-                        const cred = await window.fbSignIn(window.fbAuth, email, pass);
-                        userUid = cred.user.uid;
-                    } else {
-                        throw authErr;
-                    }
+                    await window.fbSetDoc(window.fbDoc(window.fbDb, "users", cred.user.uid), {
+                        name: name,
+                        email: email,
+                        role: "coordenacao",
+                        createdAt: new Date().toISOString()
+                    });
+                    alert("Conta de coordenação criada com sucesso no Firebase!");
+                } else {
+                    alert("Firebase não está totalmente carregado no momento. Verifique a conexão.");
                 }
-
-                await window.fbSetDoc(window.fbDoc(window.fbDb, "users", userUid), {
-                    name: name,
-                    email: email,
-                    role: "coordenacao",
-                    updatedAt: new Date().toISOString()
-                });
-
-                alert("Conta de Coordenação configurada com sucesso no Firestore!\nRole: 'coordenacao'");
-                location.reload();
             } catch (err) {
-                alert("Erro ao registrar no Firestore: " + err.message);
+                alert("Aviso / Erro ao criar conta de coordenação: " + err.message);
             }
         }
 
-        async function registerPunch(type) {
+        function promptPunchJustification(type) {
+            pendingPunchType = type;
+            const titleEl = document.getElementById('modalPunchTypeTitle');
+            const inputEl = document.getElementById('punchJustificationInput');
+            
+            if (titleEl) titleEl.textContent = `Registrar ${type}`;
+            if (inputEl) inputEl.value = '';
+            
+            const modal = document.getElementById('justificationModal');
+            if (modal) modal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeJustificationModal() {
+            pendingPunchType = null;
+            const modal = document.getElementById('justificationModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function confirmPunchRegistration() {
+            if (!pendingPunchType) return;
+            const type = pendingPunchType;
+            const justification = document.getElementById('punchJustificationInput').value.trim();
+            
+            closeJustificationModal();
+            await registerPunch(type, justification);
+        }
+
+        async function registerPunch(type, justification = '') {
             if (!window.currentSession) {
                 alert("Nenhum usuário logado.");
                 return;
@@ -700,6 +784,7 @@
                 date: now.toISOString().split('T')[0],
                 time: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
                 type: type,
+                reason: justification || null,
                 timestamp: now.toISOString(),
                 location: currentLocationData || { latitude: null, longitude: null, note: "Sem GPS" }
             };
@@ -950,10 +1035,15 @@
                         ? `<a href="${p.location.googleMapsUrl}" target="_blank" class="text-[10px] text-hovet-blue underline font-medium block mt-1">Ver GPS</a>`
                         : `<span class="text-[9px] text-slate-400 block mt-1">Sem GPS</span>`;
 
+                    const reasonText = p.reason 
+                        ? `<span class="text-[10px] text-slate-600 bg-white/80 p-1 rounded border border-slate-200 block mt-1.5 font-normal text-left truncate" title="${p.reason}">📝 ${p.reason}</span>` 
+                        : '';
+
                     listEl.innerHTML += `
                         <div class="p-3 ${style} border rounded-xl text-center shadow-sm">
                             <span class="text-[10px] font-extrabold uppercase block tracking-wide">${p.type} #${index + 1} ${p.isManual ? '(Manual)' : ''}</span>
                             <span class="text-xl font-black">${p.time}</span>
+                            ${reasonText}
                             ${locText}
                         </div>
                     `;
@@ -965,7 +1055,8 @@
 
         async function loadReports() {
             const tbody = document.getElementById('reportsTableBody');
-            const filterSelect = document.getElementById('reportUserFilter');
+            const userFilterSelect = document.getElementById('reportUserFilter');
+            const monthFilterSelect = document.getElementById('reportMonthFilter');
             if (!tbody) return;
 
             try {
@@ -986,19 +1077,51 @@
                     return;
                 }
 
-                if (filterSelect) {
-                    const selectedVal = filterSelect.value || 'ALL';
-                    const uniqueUsers = Array.from(new Set(punches.map(p => p.userName || 'Prestador'))).sort();
-                    
-                    filterSelect.innerHTML = `<option value="ALL">Exibir Todos os Prestadores (${uniqueUsers.length})</option>`;
-                    uniqueUsers.forEach(u => {
-                        filterSelect.innerHTML += `<option value="${u}" ${selectedVal === u ? 'selected' : ''}>${u}</option>`;
-                    });
+                // Populando Filtro de Meses (Mês/Ano)
+                if (monthFilterSelect) {
+                    const currentMonthVal = monthFilterSelect.value || 'ALL';
+                    const availableMonths = Array.from(new Set(punches.map(p => {
+                        if (!p.date) return null;
+                        const [year, month] = p.date.split('-');
+                        return `${year}-${month}`;
+                    }).filter(Boolean))).sort().reverse();
+
+                    if (monthFilterSelect.options.length <= 1) {
+                        monthFilterSelect.innerHTML = `<option value="ALL">Todos os Meses</option>`;
+                        availableMonths.forEach(m => {
+                            const [y, monthNum] = m.split('-');
+                            const dateObj = new Date(parseInt(y), parseInt(monthNum) - 1, 1);
+                            const monthLabel = dateObj.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                            monthFilterSelect.innerHTML += `<option value="${m}">${monthLabel.toUpperCase()}</option>`;
+                        });
+                        if (currentMonthVal !== 'ALL') monthFilterSelect.value = currentMonthVal;
+                    }
                 }
 
-                const activeFilter = filterSelect ? filterSelect.value : 'ALL';
-                if (activeFilter && activeFilter !== 'ALL') {
-                    punches = punches.filter(p => (p.userName || 'Prestador') === activeFilter);
+                // Populando Filtro de Prestadores
+                if (userFilterSelect) {
+                    const selectedVal = userFilterSelect.value || 'ALL';
+                    const uniqueUsers = Array.from(new Set(punches.map(p => p.userName || 'Prestador'))).sort();
+                    
+                    if (userFilterSelect.options.length <= 1) {
+                        userFilterSelect.innerHTML = `<option value="ALL">Exibir Todos os Prestadores (${uniqueUsers.length})</option>`;
+                        uniqueUsers.forEach(u => {
+                            userFilterSelect.innerHTML += `<option value="${u}">${u}</option>`;
+                        });
+                        if (selectedVal !== 'ALL') userFilterSelect.value = selectedVal;
+                    }
+                }
+
+                // Aplicação dos Filtros
+                const activeUserFilter = userFilterSelect ? userFilterSelect.value : 'ALL';
+                const activeMonthFilter = monthFilterSelect ? monthFilterSelect.value : 'ALL';
+
+                if (activeUserFilter && activeUserFilter !== 'ALL') {
+                    punches = punches.filter(p => (p.userName || 'Prestador') === activeUserFilter);
+                }
+
+                if (activeMonthFilter && activeMonthFilter !== 'ALL') {
+                    punches = punches.filter(p => p.date && p.date.startsWith(activeMonthFilter));
                 }
 
                 const grouped = {};
@@ -1020,7 +1143,7 @@
                 const sortedKeys = Object.keys(grouped).sort((a, b) => grouped[b].date.localeCompare(grouped[a].date));
 
                 if (sortedKeys.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">Nenhum registro encontrado para este filtro.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">Nenhum registro encontrado para os filtros selecionados.</td></tr>`;
                     return;
                 }
 
@@ -1039,9 +1162,14 @@
                                 const locText = p.location && p.location.latitude 
                                     ? `<a href="${p.location.googleMapsUrl}" target="_blank" class="text-[9px] text-hovet-blue underline block font-normal">GPS (${p.location.latitude.toFixed(2)}, ${p.location.longitude.toFixed(2)})</a>`
                                     : '';
+                                const reasonTag = p.reason 
+                                    ? `<span class="text-[9px] text-slate-600 bg-amber-50 border border-amber-200 px-1 py-0.5 rounded block font-normal mt-0.5" title="${p.reason}">📝 ${p.reason}</span>` 
+                                    : '';
+
                                 return `<div class="my-0.5">
                                     <span class="font-bold text-hovet-navy">${p.time}</span>
                                     ${p.isManual ? '<span class="text-[9px] text-amber-600 font-bold block">(Manual)</span>' : ''}
+                                    ${reasonTag}
                                     ${locText}
                                 </div>`;
                             }).join('<div class="border-t border-slate-100 my-1"></div>');
